@@ -1,0 +1,2520 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Family Hub 🏠</title>
+  <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800&family=DM+Sans:wght@400;500&display=swap" rel="stylesheet">
+  <style>
+    /* ===== RESET & BASE ===== */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html { font-size: 16px; -webkit-tap-highlight-color: transparent; }
+    body {
+      font-family: 'DM Sans', sans-serif;
+      background: #F5F0EB;
+      color: #2D3436;
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    /* ===== CSS VARIABLES ===== */
+    :root {
+      --coral: #FF6B6B;
+      --orange: #FF8E53;
+      --teal: #4ECDC4;
+      --blue: #45B7D1;
+      --green: #6BCB77;
+      --yellow: #FFD166;
+      --purple: #C084FC;
+      --bg: #FFF9F5;
+      --card: #FFFFFF;
+      --text: #2D3436;
+      --muted: #636E72;
+      --light: #F1F3F4;
+      --border: #E8ECEF;
+      --radius: 16px;
+      --radius-sm: 10px;
+      --shadow: 0 4px 20px rgba(0,0,0,0.08);
+      --shadow-sm: 0 2px 8px rgba(0,0,0,0.06);
+    }
+
+    /* ===== APP SHELL ===== */
+    #app {
+      max-width: 480px;
+      margin: 0 auto;
+      min-height: 100vh;
+      background: var(--bg);
+      position: relative;
+      box-shadow: 0 0 40px rgba(0,0,0,0.12);
+    }
+
+    /* ===== VIEWS ===== */
+    .view {
+      display: none;
+      min-height: 100vh;
+      animation: fadeIn 0.25s ease;
+    }
+    .view.active { display: block; }
+
+    /* ===== TOP HEADER BAR ===== */
+    .view-header {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 18px 20px 14px;
+      background: var(--bg);
+      position: sticky;
+      top: 0;
+      z-index: 10;
+      border-bottom: 1px solid var(--border);
+    }
+    .view-header h2 {
+      font-family: 'Nunito', sans-serif;
+      font-weight: 800;
+      font-size: 1.35rem;
+      flex: 1;
+    }
+    .btn-back {
+      background: var(--light);
+      border: none;
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      font-size: 1.1rem;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: background 0.2s;
+      flex-shrink: 0;
+    }
+    .btn-back:hover { background: var(--border); }
+
+    /* ===== CARDS ===== */
+    .card {
+      background: var(--card);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow-sm);
+      padding: 16px;
+      margin-bottom: 12px;
+    }
+    .card-title {
+      font-family: 'Nunito', sans-serif;
+      font-weight: 700;
+      font-size: 0.95rem;
+      margin-bottom: 4px;
+    }
+    .card-desc { color: var(--muted); font-size: 0.875rem; line-height: 1.4; }
+
+    /* ===== BUTTONS ===== */
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 5px;
+      padding: 11px 18px;
+      border-radius: 50px;
+      border: none;
+      font-family: 'Nunito', sans-serif;
+      font-weight: 700;
+      font-size: 0.9rem;
+      cursor: pointer;
+      transition: transform 0.15s, box-shadow 0.15s, opacity 0.15s;
+      text-decoration: none;
+      white-space: nowrap;
+    }
+    .btn:active { transform: scale(0.96); }
+    .btn-primary {
+      background: linear-gradient(135deg, var(--coral), var(--orange));
+      color: white;
+      box-shadow: 0 4px 14px rgba(255,107,107,0.38);
+    }
+    .btn-primary:hover { box-shadow: 0 6px 18px rgba(255,107,107,0.5); }
+    .btn-child {
+      background: linear-gradient(135deg, var(--teal), var(--blue));
+      color: white;
+      box-shadow: 0 4px 14px rgba(78,205,196,0.38);
+    }
+    .btn-success {
+      background: linear-gradient(135deg, #6BCB77, #4CAF50);
+      color: white;
+      box-shadow: 0 4px 12px rgba(107,203,119,0.35);
+    }
+    .btn-danger {
+      background: linear-gradient(135deg, #FF6B6B, #ee5a24);
+      color: white;
+      box-shadow: 0 4px 12px rgba(255,107,107,0.3);
+    }
+    .btn-ghost {
+      background: transparent;
+      color: var(--text);
+      border: 2px solid var(--border);
+    }
+    .btn-sm { padding: 7px 14px; font-size: 0.82rem; }
+    .btn-full { width: 100%; }
+
+    /* ===== BADGES ===== */
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 3px;
+      padding: 3px 9px;
+      border-radius: 50px;
+      font-size: 0.73rem;
+      font-weight: 600;
+      font-family: 'Nunito', sans-serif;
+    }
+    .badge-chores { background: #FEF3C7; color: #D97706; }
+    .badge-homework { background: #EDE9FE; color: #7C3AED; }
+    .badge-self-care { background: #D1FAE5; color: #059669; }
+    .badge-other { background: #F3F4F6; color: #374151; }
+    .badge-daily { background: #DBEAFE; color: #1D4ED8; }
+    .badge-weekly { background: #FCE7F3; color: #DB2777; }
+    .badge-one-time { background: #F0FDF4; color: #15803D; }
+    .badge-pending { background: #FEF9C3; color: #A16207; }
+    .badge-done-awaiting { background: #DBEAFE; color: #1D4ED8; }
+    .badge-verified { background: #DCFCE7; color: #16A34A; }
+    .badge-skipped { background: #F1F5F9; color: #64748B; }
+    .badge-high { background: #FEE2E2; color: #DC2626; }
+    .badge-medium { background: #FEF3C7; color: #D97706; }
+    .badge-low { background: #F0FDF4; color: #16A34A; }
+    .badge-approved { background: #DCFCE7; color: #16A34A; }
+    .badge-rejected { background: #FEE2E2; color: #DC2626; }
+
+    /* ===== STARS ===== */
+    .stars { display: inline-flex; gap: 1px; }
+    .star { font-size: 0.95rem; color: #D1D5DB; line-height: 1; }
+    .star.filled { color: var(--yellow); }
+    .star-lg .star { font-size: 1.3rem; }
+
+    /* ===== FORM ELEMENTS ===== */
+    .form-group { margin-bottom: 16px; }
+    .form-label {
+      display: block;
+      font-family: 'Nunito', sans-serif;
+      font-weight: 700;
+      font-size: 0.8rem;
+      color: var(--muted);
+      margin-bottom: 6px;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+    .form-input, .form-select, .form-textarea {
+      width: 100%;
+      padding: 11px 14px;
+      border: 2px solid var(--border);
+      border-radius: var(--radius-sm);
+      font-family: 'DM Sans', sans-serif;
+      font-size: 0.93rem;
+      color: var(--text);
+      background: white;
+      transition: border-color 0.2s;
+      outline: none;
+      -webkit-appearance: none;
+    }
+    .form-input:focus, .form-select:focus, .form-textarea:focus { border-color: var(--coral); }
+    .form-input.error, .form-select.error, .form-textarea.error { border-color: var(--coral); background: #FFF5F5; }
+    .form-error { color: var(--coral); font-size: 0.78rem; margin-top: 4px; display: none; }
+    .form-error.show { display: block; }
+    .form-textarea { resize: vertical; min-height: 76px; }
+    .form-select { cursor: pointer; }
+
+    /* ===== PIN PAD ===== */
+    .pin-pad { max-width: 270px; margin: 0 auto; }
+    .pin-display { display: flex; justify-content: center; gap: 14px; margin-bottom: 28px; }
+    .pin-dot {
+      width: 15px;
+      height: 15px;
+      border-radius: 50%;
+      border: 2.5px solid var(--border);
+      background: transparent;
+      transition: all 0.18s;
+    }
+    .pin-dot.filled {
+      background: var(--coral);
+      border-color: var(--coral);
+      transform: scale(1.12);
+      box-shadow: 0 2px 8px rgba(255,107,107,0.45);
+    }
+    .pin-dot.filled.child-theme { background: var(--teal); border-color: var(--teal); box-shadow: 0 2px 8px rgba(78,205,196,0.45); }
+    .pin-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+    .pin-btn {
+      aspect-ratio: 1;
+      border: none;
+      border-radius: var(--radius);
+      background: var(--card);
+      box-shadow: var(--shadow-sm);
+      font-family: 'Nunito', sans-serif;
+      font-size: 1.35rem;
+      font-weight: 700;
+      cursor: pointer;
+      transition: all 0.13s;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--text);
+    }
+    .pin-btn:active { transform: scale(0.92); background: var(--light); }
+    .pin-btn.confirm-parent { background: linear-gradient(135deg, var(--coral), var(--orange)); color: white; box-shadow: 0 4px 14px rgba(255,107,107,0.38); }
+    .pin-btn.confirm-child { background: linear-gradient(135deg, var(--teal), var(--blue)); color: white; box-shadow: 0 4px 14px rgba(78,205,196,0.38); }
+    .pin-btn.delete { font-size: 1rem; }
+    .pin-error {
+      text-align: center;
+      color: var(--coral);
+      font-size: 0.88rem;
+      font-weight: 600;
+      margin-top: 16px;
+      min-height: 22px;
+      animation: shake 0.38s ease;
+    }
+
+    /* ===== TAB NAV ===== */
+    .tab-nav {
+      display: flex;
+      background: var(--light);
+      border-radius: 50px;
+      padding: 4px;
+      margin: 16px 20px;
+      gap: 3px;
+    }
+    .tab-btn {
+      flex: 1;
+      padding: 7px 2px;
+      border: none;
+      border-radius: 50px;
+      background: transparent;
+      font-family: 'Nunito', sans-serif;
+      font-weight: 700;
+      font-size: 0.72rem;
+      color: var(--muted);
+      cursor: pointer;
+      transition: all 0.2s;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 2px;
+    }
+    .tab-btn .tab-icon { font-size: 1rem; }
+    .tab-btn.active { background: white; color: var(--text); box-shadow: var(--shadow-sm); }
+
+    /* ===== PROGRESS BAR ===== */
+    .progress-wrap { background: var(--light); border-radius: 50px; height: 11px; overflow: hidden; }
+    .progress-bar { height: 100%; border-radius: 50px; background: linear-gradient(90deg, var(--teal), var(--blue)); transition: width 0.7s ease; }
+    .progress-wrap-white { background: rgba(255,255,255,0.28); border-radius: 50px; height: 8px; overflow: hidden; }
+    .progress-bar-white { height: 100%; border-radius: 50px; background: white; transition: width 0.8s ease; }
+
+    /* ===== FAB ===== */
+    .fab {
+      position: fixed;
+      bottom: 24px;
+      right: max(20px, calc(50vw - 220px));
+      width: 54px;
+      height: 54px;
+      border-radius: 50%;
+      border: none;
+      background: linear-gradient(135deg, var(--coral), var(--orange));
+      color: white;
+      font-size: 1.6rem;
+      cursor: pointer;
+      box-shadow: 0 6px 20px rgba(255,107,107,0.5);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: transform 0.18s, box-shadow 0.18s;
+      z-index: 20;
+      line-height: 1;
+    }
+    .fab:active { transform: scale(0.92); }
+    .fab:hover { box-shadow: 0 8px 26px rgba(255,107,107,0.6); }
+    .fab-child { background: linear-gradient(135deg, var(--teal), var(--blue)); box-shadow: 0 6px 20px rgba(78,205,196,0.5); }
+    .fab-child:hover { box-shadow: 0 8px 26px rgba(78,205,196,0.65); }
+
+    /* ===== MODAL ===== */
+    .modal-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.38);
+      z-index: 50;
+      display: none;
+      backdrop-filter: blur(3px);
+    }
+    .modal-overlay.show { display: block; }
+    .modal {
+      position: fixed;
+      bottom: 0;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 100%;
+      max-width: 480px;
+      background: var(--bg);
+      border-radius: 24px 24px 0 0;
+      padding: 24px 20px 44px;
+      z-index: 51;
+      display: none;
+      max-height: 92vh;
+      overflow-y: auto;
+    }
+    .modal.show { display: block; animation: slideUp 0.28s ease; }
+    .modal-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 20px;
+    }
+    .modal-title { font-family: 'Nunito', sans-serif; font-weight: 800; font-size: 1.25rem; }
+    .modal-close {
+      width: 32px; height: 32px;
+      border-radius: 50%; border: none;
+      background: var(--light); font-size: 0.95rem;
+      cursor: pointer; display: flex; align-items: center; justify-content: center;
+    }
+    .modal-close:hover { background: var(--border); }
+
+    /* ===== TOAST ===== */
+    #toast {
+      position: fixed;
+      bottom: 88px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: #2D3436;
+      color: white;
+      padding: 11px 22px;
+      border-radius: 50px;
+      font-family: 'Nunito', sans-serif;
+      font-weight: 600;
+      font-size: 0.88rem;
+      z-index: 100;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.28s;
+      white-space: nowrap;
+      max-width: 90vw;
+    }
+    #toast.show { opacity: 1; }
+
+    /* ===== CONFETTI ===== */
+    #confetti-container { position: fixed; inset: 0; pointer-events: none; z-index: 200; overflow: hidden; }
+    .confetti-piece {
+      position: absolute;
+      top: -12px;
+      border-radius: 2px;
+      animation: confettiFall linear forwards;
+    }
+
+    /* ===== HOME SCREEN ===== */
+    .home-bg {
+      min-height: 100vh;
+      background: linear-gradient(160deg, #FFF0E8 0%, #FFF9F5 45%, #E8F8F5 100%);
+      padding: 36px 24px 40px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+    .home-logo { font-size: 4.5rem; text-align: center; animation: float 3.2s ease-in-out infinite; margin-bottom: 4px; }
+    .home-title {
+      font-family: 'Nunito', sans-serif;
+      font-weight: 800;
+      font-size: 2.1rem;
+      text-align: center;
+      background: linear-gradient(135deg, var(--coral), var(--orange));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      margin-bottom: 6px;
+    }
+    .home-motto { text-align: center; color: var(--muted); font-size: 0.93rem; margin-bottom: 36px; font-style: italic; line-height: 1.5; max-width: 280px; }
+    .home-section-label {
+      font-family: 'Nunito', sans-serif;
+      font-weight: 700;
+      font-size: 0.8rem;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      margin-bottom: 12px;
+      text-align: center;
+    }
+    .child-btn-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 12px;
+      width: 100%;
+      margin-bottom: 32px;
+    }
+    .child-btn {
+      background: white;
+      border: 2.5px solid var(--border);
+      border-radius: var(--radius);
+      padding: 20px 14px;
+      text-align: center;
+      cursor: pointer;
+      transition: all 0.2s;
+      box-shadow: var(--shadow-sm);
+    }
+    .child-btn:hover { border-color: var(--teal); transform: translateY(-2px); box-shadow: 0 8px 22px rgba(78,205,196,0.2); }
+    .child-btn:active { transform: scale(0.97); }
+    .child-btn .child-emoji { font-size: 2.6rem; display: block; margin-bottom: 7px; }
+    .child-btn .child-name { font-family: 'Nunito', sans-serif; font-weight: 700; font-size: 1rem; color: var(--text); }
+
+    /* ===== SUMMARY CARDS ===== */
+    .summary-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 10px;
+      padding: 0 16px;
+      margin-bottom: 4px;
+    }
+    .summary-card { background: white; border-radius: var(--radius); padding: 12px 8px; text-align: center; box-shadow: var(--shadow-sm); }
+    .summary-card .s-icon { font-size: 1.4rem; display: block; margin-bottom: 3px; }
+    .summary-card .s-count { font-family: 'Nunito', sans-serif; font-weight: 800; font-size: 1.6rem; line-height: 1; }
+    .summary-card .s-label { font-size: 0.68rem; color: var(--muted); font-weight: 500; margin-top: 2px; line-height: 1.25; }
+
+    /* ===== PARENT DASHBOARD HEADER ===== */
+    .parent-header {
+      background: linear-gradient(135deg, var(--coral), var(--orange));
+      padding: 22px 20px 18px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .parent-header h2 { font-family: 'Nunito', sans-serif; font-weight: 800; font-size: 1.3rem; color: white; }
+    .logout-btn {
+      background: rgba(255,255,255,0.22);
+      border: none;
+      color: white;
+      padding: 6px 14px;
+      border-radius: 50px;
+      font-family: 'Nunito', sans-serif;
+      font-weight: 700;
+      cursor: pointer;
+      font-size: 0.83rem;
+      transition: background 0.2s;
+    }
+    .logout-btn:hover { background: rgba(255,255,255,0.32); }
+
+    /* ===== CHILD HOME HEADER ===== */
+    .child-header {
+      background: linear-gradient(135deg, var(--teal), var(--blue));
+      padding: 20px 20px 22px;
+      color: white;
+    }
+    .child-header-top { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; }
+    .child-header-info { display: flex; align-items: center; gap: 12px; margin-bottom: 16px; }
+    .child-avatar {
+      font-size: 2.5rem;
+      background: rgba(255,255,255,0.2);
+      border-radius: 50%;
+      width: 56px; height: 56px;
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0;
+    }
+    .child-header h2 { font-family: 'Nunito', sans-serif; font-weight: 800; font-size: 1.45rem; }
+    .child-header .motivational { font-size: 0.88rem; opacity: 0.88; margin-top: 3px; }
+    .child-points-card {
+      background: rgba(255,255,255,0.16);
+      border-radius: var(--radius);
+      padding: 14px 16px;
+      backdrop-filter: blur(8px);
+    }
+    .child-points-row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
+    .points-big { font-family: 'Nunito', sans-serif; font-weight: 800; font-size: 2rem; display: flex; align-items: center; gap: 5px; }
+    .points-label { font-size: 0.78rem; opacity: 0.8; margin-bottom: 3px; }
+    .milestone-info { text-align: right; }
+    .milestone-info .milestone-val { font-family: 'Nunito', sans-serif; font-weight: 700; font-size: 1.05rem; }
+
+    /* ===== TASK CARD ===== */
+    .task-card {
+      background: var(--card);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow-sm);
+      padding: 13px 15px;
+      margin-bottom: 10px;
+      transition: transform 0.18s, box-shadow 0.18s;
+      border-left: 3px solid transparent;
+    }
+    .task-card:hover { transform: translateY(-1px); box-shadow: var(--shadow); }
+    .task-card.verified { opacity: 0.55; border-left-color: var(--green); }
+    .task-card.done-awaiting { border-left-color: var(--blue); }
+    .task-card-header { display: flex; align-items: flex-start; gap: 10px; margin-bottom: 8px; }
+    .task-cat-icon { font-size: 1.25rem; flex-shrink: 0; margin-top: 1px; }
+    .task-card-info { flex: 1; min-width: 0; }
+    .task-card-title { font-family: 'Nunito', sans-serif; font-weight: 700; font-size: 0.93rem; }
+    .task-card-sub { font-size: 0.78rem; color: var(--muted); margin-top: 2px; line-height: 1.35; }
+    .task-card-meta { display: flex; align-items: center; gap: 5px; flex-wrap: wrap; }
+    .task-card-actions { display: flex; gap: 7px; margin-top: 10px; flex-wrap: wrap; }
+    .task-edit-btns { display: flex; gap: 4px; flex-shrink: 0; }
+    .icon-btn {
+      background: var(--light); border: none; width: 30px; height: 30px;
+      border-radius: var(--radius-sm); cursor: pointer; font-size: 0.85rem;
+      display: flex; align-items: center; justify-content: center;
+      transition: background 0.15s;
+    }
+    .icon-btn:hover { background: var(--border); }
+
+    /* ===== REQUEST CARD ===== */
+    .request-card { background: var(--card); border-radius: var(--radius); box-shadow: var(--shadow-sm); padding: 15px; margin-bottom: 11px; }
+    .request-card-header { display: flex; align-items: center; gap: 9px; margin-bottom: 7px; }
+    .request-icon { font-size: 1.25rem; }
+    .request-title { font-family: 'Nunito', sans-serif; font-weight: 700; font-size: 0.93rem; flex: 1; }
+    .request-meta { display: flex; align-items: center; gap: 5px; flex-wrap: wrap; margin-bottom: 7px; }
+    .request-child-tag { font-size: 0.8rem; color: var(--muted); }
+    .request-desc { font-size: 0.85rem; color: var(--muted); margin-bottom: 10px; line-height: 1.4; }
+    .request-actions { display: flex; gap: 7px; }
+    .reply-area { display: none; margin-top: 10px; }
+    .reply-area.show { display: block; }
+    .reply-bubble {
+      border-radius: 10px;
+      padding: 9px 12px;
+      font-size: 0.84rem;
+      margin-bottom: 4px;
+      line-height: 1.4;
+    }
+    .reply-bubble.approved { background: #F0FDF4; color: #15803D; }
+    .reply-bubble.rejected { background: #FEF2F2; color: #DC2626; }
+
+    /* ===== CHILD STAT CARD ===== */
+    .child-stat-card { background: var(--card); border-radius: var(--radius); box-shadow: var(--shadow-sm); padding: 15px; margin-bottom: 11px; }
+    .child-stat-header { display: flex; align-items: center; gap: 12px; margin-bottom: 11px; }
+    .child-stat-emoji { font-size: 2.1rem; }
+    .child-stat-name { font-family: 'Nunito', sans-serif; font-weight: 800; font-size: 1.05rem; flex: 1; }
+    .child-stat-pin { font-size: 0.78rem; color: var(--muted); margin-top: 1px; }
+    .child-stat-points { font-family: 'Nunito', sans-serif; font-weight: 700; font-size: 1.05rem; color: var(--yellow); display: flex; align-items: center; gap: 3px; }
+
+    /* ===== EMPTY STATE ===== */
+    .empty-state { text-align: center; padding: 42px 20px; }
+    .empty-state .empty-emoji { font-size: 3.6rem; display: block; margin-bottom: 12px; animation: float 3s ease-in-out infinite; }
+    .empty-state h3 { font-family: 'Nunito', sans-serif; font-weight: 700; font-size: 1.08rem; margin-bottom: 5px; }
+    .empty-state p { color: var(--muted); font-size: 0.86rem; }
+
+    /* ===== SECTION HELPERS ===== */
+    .section-pad { padding: 0 16px; }
+    .section-title { font-family: 'Nunito', sans-serif; font-weight: 800; font-size: 0.97rem; margin-bottom: 11px; display: flex; align-items: center; gap: 6px; }
+    .spacer80 { height: 80px; }
+
+    /* ===== EMOJI PICKER ===== */
+    .emoji-picker { display: flex; gap: 7px; flex-wrap: wrap; }
+    .emoji-option {
+      font-size: 1.45rem; width: 42px; height: 42px;
+      border-radius: var(--radius-sm); border: 2px solid var(--border);
+      background: white; cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      transition: all 0.18s;
+    }
+    .emoji-option.selected { border-color: var(--teal); background: #E8FBFA; transform: scale(1.1); }
+
+    /* ===== STAR PICKER ===== */
+    .star-picker { display: flex; gap: 3px; }
+    .star-pick-btn {
+      font-size: 1.55rem; background: none; border: none;
+      cursor: pointer; color: #D1D5DB; transition: color 0.15s, transform 0.15s;
+      padding: 2px; line-height: 1;
+    }
+    .star-pick-btn.filled { color: var(--yellow); }
+    .star-pick-btn:hover { transform: scale(1.2); }
+
+    /* ===== URGENCY / CATEGORY BUTTON GRIDS ===== */
+    .choice-grid { display: grid; gap: 8px; }
+    .choice-grid-2 { grid-template-columns: repeat(2, 1fr); }
+    .choice-grid-3 { grid-template-columns: repeat(3, 1fr); }
+    .choice-btn {
+      padding: 10px 8px;
+      border-radius: var(--radius-sm);
+      border: 2px solid var(--border);
+      background: white;
+      font-family: 'Nunito', sans-serif;
+      font-weight: 700;
+      font-size: 0.84rem;
+      cursor: pointer;
+      text-align: center;
+      transition: all 0.18s;
+      color: var(--text);
+    }
+    .choice-btn:hover { border-color: var(--muted); }
+    .choice-btn.sel-low { border-color: #16A34A; background: #F0FDF4; color: #16A34A; }
+    .choice-btn.sel-medium { border-color: #D97706; background: #FFFBEB; color: #D97706; }
+    .choice-btn.sel-high { border-color: #DC2626; background: #FEF2F2; color: #DC2626; }
+    .choice-btn.sel-active { border-color: var(--teal); background: #E8FBFA; color: #0d7a75; }
+
+    /* ===== REWARD CARDS ===== */
+    .reward-card {
+      background: var(--card);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow-sm);
+      padding: 13px 14px;
+      margin-bottom: 10px;
+      display: flex;
+      align-items: center;
+      gap: 11px;
+      transition: transform 0.18s, box-shadow 0.18s;
+    }
+    .reward-card:hover { transform: translateY(-1px); box-shadow: var(--shadow); }
+    .reward-card.inactive { opacity: 0.45; }
+    .reward-icon-big { font-size: 1.9rem; flex-shrink: 0; }
+    .reward-info { flex: 1; min-width: 0; }
+    .reward-title { font-family: 'Nunito', sans-serif; font-weight: 700; font-size: 0.92rem; }
+    .reward-desc { font-size: 0.77rem; color: var(--muted); margin-top: 2px; line-height: 1.3; }
+    .reward-cost-tag {
+      background: linear-gradient(135deg, #FFFBEB, #FEF3C7);
+      border: 1.5px solid #FFD166;
+      border-radius: 50px;
+      padding: 5px 11px;
+      font-family: 'Nunito', sans-serif;
+      font-weight: 800;
+      font-size: 0.88rem;
+      color: #B45309;
+      display: flex;
+      align-items: center;
+      gap: 3px;
+      white-space: nowrap;
+      flex-shrink: 0;
+    }
+    .reward-store-card {
+      background: var(--card);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow-sm);
+      padding: 14px 15px;
+      margin-bottom: 10px;
+      border: 2px solid var(--border);
+      transition: all 0.2s;
+    }
+    .reward-store-card:hover { box-shadow: var(--shadow); }
+    .reward-store-card.can-afford { border-color: rgba(255,209,102,0.5); }
+    .reward-store-card.cant-afford { opacity: 0.6; }
+    .reward-store-card.already-pending { border-color: var(--blue); background: #F0F9FF; }
+    .reward-store-header { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
+    .reward-store-icon { font-size: 1.8rem; flex-shrink: 0; }
+    .reward-store-title { font-family: 'Nunito', sans-serif; font-weight: 700; font-size: 0.92rem; flex: 1; }
+    .reward-store-footer { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+    .redemption-card {
+      background: linear-gradient(135deg, #FFFBEB, #FFF9F5);
+      border: 1.5px solid #FFD166;
+      border-radius: var(--radius);
+      padding: 13px 14px;
+      margin-bottom: 10px;
+    }
+    .redemption-header { display: flex; align-items: center; gap: 9px; margin-bottom: 7px; }
+    .pending-redemptions-banner {
+      background: linear-gradient(135deg, #FEF3C7, #FFFBEB);
+      border-radius: 12px;
+      padding: 10px 14px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin: 0 0 12px;
+      border: 1px solid #FFD166;
+      cursor: pointer;
+    }
+    /* scrollable tab nav for 5 tabs */
+    .tab-nav { overflow-x: auto; flex-wrap: nowrap; scrollbar-width: none; }
+    .tab-nav::-webkit-scrollbar { display: none; }
+    .tab-btn { min-width: 60px; }
+
+    /* ===== DIVIDER ===== */
+    .divider { height: 1px; background: var(--border); margin: 14px 0; }
+
+    /* ===== ANIMATIONS ===== */
+    @keyframes fadeIn {
+      from { opacity: 0; }
+      to { opacity: 1; }
+    }
+    @keyframes slideUp {
+      from { transform: translate(-50%, 60px); opacity: 0; }
+      to { transform: translate(-50%, 0); opacity: 1; }
+    }
+    @keyframes starBurst {
+      0% { transform: scale(1); }
+      35% { transform: scale(1.45); filter: drop-shadow(0 0 10px var(--yellow)); }
+      100% { transform: scale(1); }
+    }
+    @keyframes pulse {
+      0%, 100% { transform: scale(1); }
+      50% { transform: scale(1.18); }
+    }
+    @keyframes float {
+      0%, 100% { transform: translateY(0); }
+      50% { transform: translateY(-9px); }
+    }
+    @keyframes shake {
+      0%, 100% { transform: translateX(0); }
+      20%, 60% { transform: translateX(-7px); }
+      40%, 80% { transform: translateX(7px); }
+    }
+    @keyframes confettiFall {
+      0% { transform: translateY(-20px) rotate(0deg); opacity: 1; }
+      100% { transform: translateY(110vh) rotate(720deg); opacity: 0; }
+    }
+    @keyframes pointPop {
+      0% { transform: scale(1); }
+      50% { transform: scale(1.25); color: var(--yellow); }
+      100% { transform: scale(1); }
+    }
+
+    /* ===== RESPONSIVE ===== */
+    @media (max-width: 400px) {
+      .summary-card .s-count { font-size: 1.35rem; }
+      .tab-btn { font-size: 0.65rem; }
+      .home-title { font-size: 1.8rem; }
+      .child-btn-grid { gap: 9px; }
+    }
+    @media (min-width: 481px) {
+      #app { border-left: 1px solid var(--border); border-right: 1px solid var(--border); }
+      .fab { right: calc(50vw - 216px); }
+    }
+  </style>
+</head>
+<body>
+
+<div id="app">
+  <div id="view-home"               class="view"></div>
+  <div id="view-pin"                class="view"></div>
+  <div id="view-parent-dashboard"   class="view"></div>
+  <div id="view-child-home"         class="view"></div>
+  <div id="view-child-request-form" class="view"></div>
+  <div id="view-child-request-history" class="view"></div>
+  <div id="view-child-rewards"          class="view"></div>
+</div>
+
+<!-- Global overlays (outside #app for fixed positioning) -->
+<div id="toast"></div>
+<div id="confetti-container"></div>
+<div id="modal-overlay" class="modal-overlay" onclick="closeModal()"></div>
+<div id="modal" class="modal"></div>
+
+<script>
+'use strict';
+
+/* =====================================================================
+   UTILITIES
+===================================================================== */
+function genId() {
+  return Date.now().toString(36) + Math.random().toString(36).substr(2, 6);
+}
+
+function today() {
+  return new Date().toISOString().split('T')[0];
+}
+
+function getWeekStart() {
+  const d = new Date();
+  const day = d.getDay();
+  const diff = d.getDate() - day + (day === 0 ? -6 : 1);
+  const m = new Date(d.getFullYear(), d.getMonth(), diff);
+  return m.toISOString().split('T')[0];
+}
+
+function esc(str) {
+  if (str == null) return '';
+  const d = document.createElement('div');
+  d.textContent = String(str);
+  return d.innerHTML;
+}
+
+function starsHTML(n, cls) {
+  let html = `<span class="stars${cls ? ' ' + cls : ''}">`;
+  for (let i = 1; i <= 5; i++) html += `<span class="star${i <= n ? ' filled' : ''}">★</span>`;
+  return html + '</span>';
+}
+
+function formatDate(ts) {
+  return new Date(ts).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
+}
+
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  clearTimeout(t._timer);
+  t._timer = setTimeout(() => t.classList.remove('show'), 2800);
+}
+
+const MOTIVATIONAL = [
+  '🚀 Great job, {name}! Keep it up!',
+  '🔥 You\'re on fire, {name}!',
+  '🌟 Amazing work, {name}!',
+  '⭐ Super star alert — that\'s you, {name}!',
+  '💪 {name}, you\'re crushing it!',
+  '🎉 Fantastic effort, {name}!',
+  '🙌 Keep going, {name}! You\'ve got this!',
+  '✨ Every task counts, {name}!'
+];
+function getMotivational(name) {
+  return MOTIVATIONAL[Math.floor(Math.random() * MOTIVATIONAL.length)].replace(/{name}/g, name);
+}
+
+const CAT_EMOJI = { chores: '🧹', homework: '📚', 'self-care': '🛁', other: '✨' };
+const REQ_EMOJI = { outing: '🚗', purchase: '🛒', permission: '🙋', other: '💬' };
+
+/* =====================================================================
+   ANIMATIONS
+===================================================================== */
+function spawnConfetti() {
+  const container = document.getElementById('confetti-container');
+  const colors = ['#FF6B6B','#FFD166','#6BCB77','#4ECDC4','#45B7D1','#C084FC','#FF8E53','#FFA07A'];
+  for (let i = 0; i < 70; i++) {
+    const p = document.createElement('div');
+    p.className = 'confetti-piece';
+    const size = 7 + Math.random() * 8;
+    p.style.cssText = `
+      left:${Math.random() * 100}vw;
+      width:${size}px;
+      height:${size}px;
+      background:${colors[Math.floor(Math.random() * colors.length)]};
+      border-radius:${Math.random() > 0.5 ? '50%' : '2px'};
+      animation-duration:${1.6 + Math.random() * 1.6}s;
+      animation-delay:${Math.random() * 0.6}s;
+    `;
+    container.appendChild(p);
+    setTimeout(() => p.remove(), 3500);
+  }
+}
+
+/* =====================================================================
+   STATE
+===================================================================== */
+const State = {
+  data: null,
+  currentUser: null,
+
+  load() {
+    const raw = localStorage.getItem('familyApp');
+    if (raw) {
+      try {
+        this.data = JSON.parse(raw);
+        if (!this.data.taskCompletions) this.data.taskCompletions = [];
+        if (!this.data.requests) this.data.requests = [];
+        if (!this.data.children) this.data.children = [];
+        if (!this.data.tasks) this.data.tasks = [];
+        if (!this.data.rewards) this.data.rewards = [];
+        if (!this.data.redemptions) this.data.redemptions = [];
+      } catch(e) { this.seed(); }
+    } else {
+      this.seed();
+    }
+  },
+
+  save() { localStorage.setItem('familyApp', JSON.stringify(this.data)); },
+
+  seed() {
+    const yoavId = genId(), noaId = genId();
+    const t1 = genId(), t2 = genId(), t3 = genId(), t4 = genId(), t5 = genId();
+    const r1 = genId(), r2 = genId();
+    const rw1=genId(),rw2=genId(),rw3=genId(),rw4=genId(),rw5=genId(),rw6=genId(),rw7=genId(),rw8=genId(),rw9=genId(),rw10=genId();
+    this.data = {
+      parentPin: '1234',
+      familyMotto: 'Together we can do anything! 💪',
+      children: [
+        { id: yoavId, name: 'Yoav', pin: '1111', emoji: '🦁', totalPoints: 12 },
+        { id: noaId,  name: 'Noa',  pin: '2222', emoji: '🦋', totalPoints: 8 }
+      ],
+      tasks: [
+        { id: t1, title: 'Clean your room',       description: 'Tidy up and put toys away',         assignedTo: 'all',   category: 'chores',    recurrence: 'daily',    points: 2, dueTime: 'before dinner' },
+        { id: t2, title: 'Do homework',            description: 'Complete all school assignments',   assignedTo: 'all',   category: 'homework',  recurrence: 'daily',    points: 3, dueTime: 'before 5pm' },
+        { id: t3, title: 'Brush teeth',            description: 'Morning and night',                 assignedTo: 'all',   category: 'self-care', recurrence: 'daily',    points: 1, dueTime: '' },
+        { id: t4, title: 'Take out the trash',     description: 'Empty all bins in the house',       assignedTo: yoavId,  category: 'chores',    recurrence: 'weekly',   points: 3, dueTime: 'Sunday evening' },
+        { id: t5, title: 'Read for 20 minutes',   description: 'Any book you like!',                assignedTo: noaId,   category: 'self-care', recurrence: 'daily',    points: 2, dueTime: 'before bedtime' }
+      ],
+      taskCompletions: [],
+      requests: [
+        { id: r1, childId: yoavId, title: 'Trip to the water park', category: 'outing',    description: 'Can we go this weekend? Pretty please!', urgency: 'high',   status: 'pending', reply: '', createdAt: Date.now() - 86400000  },
+        { id: r2, childId: noaId,  title: 'Buy new markers',        category: 'purchase',  description: 'I need them for art class.',              urgency: 'medium', status: 'pending', reply: '', createdAt: Date.now() - 172800000 }
+      ],
+      rewards: [
+        { id: rw1,  icon: '📱', title: '30 min extra screen time',        description: 'Extra TV, tablet or computer time',       cost: 5,  isActive: true, isGroup: false },
+        { id: rw2,  icon: '💰', title: 'Pocket money bonus (10₪)',        description: 'Cash reward paid out by parent',           cost: 10, isActive: true, isGroup: false },
+        { id: rw3,  icon: '🎬', title: 'Movie night pick',                description: 'You choose the movie for family night',   cost: 8,  isActive: true, isGroup: false },
+        { id: rw4,  icon: '🍕', title: 'Choose dinner tonight',           description: 'Pick what the whole family eats',         cost: 6,  isActive: true, isGroup: false },
+        { id: rw5,  icon: '🌙', title: 'Stay up 30 min late',             description: 'One special late night, your choice',     cost: 7,  isActive: true, isGroup: false },
+        { id: rw6,  icon: '👫', title: 'Friend sleepover',                description: 'Invite a friend to stay overnight',       cost: 15, isActive: true, isGroup: false },
+        { id: rw7,  icon: '🍦', title: 'Special dessert treat',           description: 'Your favourite sweet treat',              cost: 4,  isActive: true, isGroup: false },
+        { id: rw8,  icon: '🛍️', title: 'Small toy or book (up to 25₪)', description: 'One item of your choice',                 cost: 20, isActive: true, isGroup: false },
+        { id: rw9,  icon: '🎮', title: '1-hour gaming session',           description: 'Uninterrupted gaming time',               cost: 8,  isActive: true, isGroup: false },
+        { id: rw10, icon: '🚗', title: 'Family outing choice',            description: 'Pick the next family day out',            cost: 25, isActive: true, isGroup: false },
+        { id: genId(), icon: '🎡', title: 'Day trip to the amusement park', description: 'Work together as a family to earn this!', cost: 30, isActive: true, isGroup: true }
+      ],
+      redemptions: []
+    };
+    this.save();
+  },
+
+  getChild(id)  { return this.data.children.find(c => c.id === id); },
+  getTask(id)   { return this.data.tasks.find(t => t.id === id); },
+  getReward(id) { return (this.data.rewards||[]).find(r => r.id === id); },
+
+  getGroupRedemption(rewardId) {
+    return (this.data.redemptions||[]).find(r => r.rewardId === rewardId && r.isGroup && r.status === 'collecting');
+  },
+  getGroupProgress(rewardId) {
+    const rd = this.getGroupRedemption(rewardId);
+    if (!rd) return { total: 0, contributions: [], rdId: null };
+    const total = (rd.contributions||[]).reduce((s, c) => s + c.amount, 0);
+    return { total, contributions: rd.contributions||[], rdId: rd.id };
+  },
+
+  ensureCompletion(taskId, childId) {
+    const task = this.getTask(taskId);
+    if (!task) return null;
+    const periodKey = task.recurrence === 'weekly' ? getWeekStart() : today();
+    let comp = this.data.taskCompletions.find(
+      c => c.taskId === taskId && c.childId === childId && c.date === periodKey
+    );
+    if (!comp) {
+      comp = { id: genId(), taskId, childId, status: 'pending', date: periodKey };
+      this.data.taskCompletions.push(comp);
+      this.save();
+    }
+    return comp;
+  },
+
+  getChildTasks(childId) {
+    return this.data.tasks
+      .filter(t => t.assignedTo === 'all' || t.assignedTo === childId)
+      .map(task => ({ task, comp: this.ensureCompletion(task.id, childId) }));
+  },
+
+  getSummary() {
+    const todayStr = today(), weekStr = getWeekStart();
+    let pendingCount = 0;
+    this.data.tasks.forEach(task => {
+      const targets = task.assignedTo === 'all'
+        ? this.data.children
+        : this.data.children.filter(c => c.id === task.assignedTo);
+      const periodKey = task.recurrence === 'weekly' ? weekStr : todayStr;
+      targets.forEach(child => {
+        const comp = this.data.taskCompletions.find(
+          c => c.taskId === task.id && c.childId === child.id && c.date === periodKey
+        );
+        if (!comp || comp.status === 'pending') pendingCount++;
+      });
+    });
+    const awaitingVerification = this.data.taskCompletions.filter(c => c.status === 'done-awaiting').length;
+    const pendingRequests    = this.data.requests.filter(r => r.status === 'pending').length;
+    const individualPending  = (this.data.redemptions||[]).filter(r => !r.isGroup && r.status === 'pending').length;
+    const groupAtGoal        = (this.data.redemptions||[]).filter(r => {
+      if (!r.isGroup || r.status !== 'collecting') return false;
+      const rw = this.getReward(r.rewardId);
+      const total = (r.contributions||[]).reduce((s,c)=>s+c.amount,0);
+      return rw && total >= rw.cost;
+    }).length;
+    const pendingRedemptions = individualPending + groupAtGoal;
+    return { pendingCount, awaitingVerification, pendingRequests, pendingRedemptions };
+  }
+};
+
+/* =====================================================================
+   ROUTER
+===================================================================== */
+const Router = {
+  stack: [],
+  currentView: null,
+  params: {},
+
+  navigate(viewId, params, addToStack) {
+    params = params || {};
+    addToStack = addToStack !== false;
+    if (this.currentView) {
+      const cur = document.getElementById('view-' + this.currentView);
+      if (cur) cur.classList.remove('active');
+      if (addToStack && this.currentView !== viewId) this.stack.push(this.currentView);
+    }
+    this.currentView = viewId;
+    this.params = params;
+    if (Views[viewId]) Views[viewId].render(params);
+    const next = document.getElementById('view-' + viewId);
+    if (next) { next.classList.add('active'); next.scrollTop = 0; }
+  },
+
+  back() {
+    if (this.stack.length > 0) {
+      const prev = this.stack.pop();
+      const cur = document.getElementById('view-' + this.currentView);
+      if (cur) cur.classList.remove('active');
+      this.currentView = prev;
+      this.params = {};
+      const next = document.getElementById('view-' + prev);
+      if (next) { next.classList.add('active'); next.scrollTop = 0; }
+    }
+  }
+};
+
+/* =====================================================================
+   MODAL
+===================================================================== */
+function openModal(content, title) {
+  document.getElementById('modal').innerHTML = `
+    <div class="modal-header">
+      <span class="modal-title">${title}</span>
+      <button class="modal-close" onclick="closeModal()">✕</button>
+    </div>
+    ${content}
+  `;
+  document.getElementById('modal').classList.add('show');
+  document.getElementById('modal-overlay').classList.add('show');
+}
+function closeModal() {
+  document.getElementById('modal').classList.remove('show');
+  document.getElementById('modal-overlay').classList.remove('show');
+}
+
+/* =====================================================================
+   PIN PAD
+===================================================================== */
+const PinPad = {
+  value: '',
+  params: null,
+
+  init(params) {
+    this.value = '';
+    this.params = params;
+    this.updateDots();
+  },
+
+  press(digit) {
+    if (this.value.length >= 4) return;
+    this.value += digit;
+    this.updateDots();
+    if (this.value.length === 4) setTimeout(() => this.check(), 180);
+  },
+
+  del() {
+    if (this.value.length > 0) {
+      this.value = this.value.slice(0, -1);
+      this.updateDots();
+      const e = document.getElementById('pin-error');
+      if (e) e.textContent = '';
+    }
+  },
+
+  updateDots() {
+    for (let i = 0; i < 4; i++) {
+      const dot = document.getElementById('pdot' + i);
+      if (dot) dot.classList.toggle('filled', i < this.value.length);
+    }
+  },
+
+  check() {
+    const isParent = this.params.role === 'parent';
+    let ok = false;
+    if (isParent) {
+      ok = this.value === State.data.parentPin;
+    } else {
+      const child = State.getChild(this.params.childId);
+      ok = child && this.value === child.pin;
+    }
+    if (ok) {
+      if (isParent) {
+        State.currentUser = { type: 'parent' };
+        Router.navigate('parent-dashboard', { tab: 'tasks' });
+      } else {
+        State.currentUser = { type: 'child', id: this.params.childId };
+        Router.navigate('child-home', { childId: this.params.childId });
+      }
+    } else {
+      const e = document.getElementById('pin-error');
+      if (e) {
+        e.style.animation = 'none';
+        e.textContent = '❌ Wrong PIN — try again';
+        void e.offsetHeight;
+        e.style.animation = '';
+      }
+      this.value = '';
+      this.updateDots();
+    }
+  }
+};
+
+/* =====================================================================
+   VIEWS
+===================================================================== */
+const Views = {
+
+  /* ---- HOME ---- */
+  home: {
+    render() {
+      const motto = esc(State.data.familyMotto || 'Together we can do anything! 💪');
+      const childBtns = State.data.children.length
+        ? State.data.children.map(c => `
+            <button class="child-btn" onclick="loginAsChild('${c.id}')">
+              <span class="child-emoji">${c.emoji}</span>
+              <span class="child-name">${esc(c.name)}</span>
+            </button>`).join('')
+        : `<div style="grid-column:1/-1;text-align:center;color:var(--muted);padding:20px 0;font-size:0.9rem;">No children added yet — log in as parent first</div>`;
+
+      document.getElementById('view-home').innerHTML = `
+        <div class="home-bg">
+          <div class="home-logo">🏠</div>
+          <h1 class="home-title">Family Hub</h1>
+          <p class="home-motto">${motto}</p>
+          <p class="home-section-label">Who are you?</p>
+          <div class="child-btn-grid">${childBtns}</div>
+          <button class="btn btn-primary btn-full" style="margin-top:auto;max-width:320px;" onclick="Router.navigate('pin',{role:'parent'})">
+            🔑 I'm a Parent
+          </button>
+        </div>`;
+    }
+  },
+
+  /* ---- PIN ---- */
+  pin: {
+    render(params) {
+      const isParent = params.role === 'parent';
+      const child = isParent ? null : State.getChild(params.childId);
+      const title = isParent ? '🔑 Parent Login' : (child ? `${child.emoji} ${esc(child.name)}` : 'Login');
+      const subtitle = isParent ? 'Enter your parent PIN' : `Hi ${child ? esc(child.name) : ''}! Enter your PIN`;
+      const theme = isParent ? 'parent' : 'child';
+
+      document.getElementById('view-pin').innerHTML = `
+        <div class="view-header">
+          <button class="btn-back" onclick="Router.back()">←</button>
+          <h2>${title}</h2>
+        </div>
+        <div style="padding:28px 24px 0;text-align:center;">
+          <p style="color:var(--muted);margin-bottom:32px;font-size:0.93rem;">${subtitle}</p>
+          <div class="pin-pad">
+            <div class="pin-display">
+              <div class="pin-dot" id="pdot0"></div>
+              <div class="pin-dot" id="pdot1"></div>
+              <div class="pin-dot" id="pdot2"></div>
+              <div class="pin-dot" id="pdot3"></div>
+            </div>
+            <div class="pin-grid">
+              ${[1,2,3,4,5,6,7,8,9].map(n=>`<button class="pin-btn" onclick="PinPad.press('${n}')">${n}</button>`).join('')}
+              <div></div>
+              <button class="pin-btn" onclick="PinPad.press('0')">0</button>
+              <button class="pin-btn delete" onclick="PinPad.del()">⌫</button>
+            </div>
+            <div class="pin-error" id="pin-error" style="animation:shake 0.38s ease;"></div>
+          </div>
+        </div>`;
+
+      PinPad.init(params);
+    }
+  },
+
+  /* ---- PARENT DASHBOARD ---- */
+  'parent-dashboard': {
+    _tab: 'tasks',
+
+    render(params) {
+      const tab = (params && params.tab) || this._tab;
+      this._tab = tab;
+      const summary = State.getSummary();
+
+      document.getElementById('view-parent-dashboard').innerHTML = `
+        <div class="parent-header">
+          <h2>👨‍👩‍👧‍👦 Parent Dashboard</h2>
+          <button class="logout-btn" onclick="doLogout()">Logout →</button>
+        </div>
+
+        <div style="padding:14px 0 0;">
+          <div class="summary-grid">
+            <div class="summary-card">
+              <span class="s-icon">📋</span>
+              <div class="s-count" style="color:var(--coral);">${summary.pendingCount}</div>
+              <div class="s-label">Tasks Pending</div>
+            </div>
+            <div class="summary-card">
+              <span class="s-icon">⏳</span>
+              <div class="s-count" style="color:var(--blue);">${summary.awaitingVerification}</div>
+              <div class="s-label">Need Verify</div>
+            </div>
+            <div class="summary-card">
+              <span class="s-icon">📬</span>
+              <div class="s-count" style="color:var(--green);">${summary.pendingRequests}</div>
+              <div class="s-label">Requests</div>
+            </div>
+          </div>
+
+          ${summary.pendingRedemptions > 0 ? `
+          <div class="pending-redemptions-banner" style="margin:0 16px 4px;" onclick="switchTab('rewards')">
+            <span style="font-size:0.84rem;font-weight:600;">🎁 ${summary.pendingRedemptions} reward redemption${summary.pendingRedemptions > 1 ? 's' : ''} waiting</span>
+            <span style="font-size:0.75rem;color:var(--muted);">Review →</span>
+          </div>` : ''}
+
+          <div class="tab-nav">
+            <button class="tab-btn ${tab==='tasks'?'active':''}" onclick="switchTab('tasks')">
+              <span class="tab-icon">📋</span>Tasks
+            </button>
+            <button class="tab-btn ${tab==='requests'?'active':''}" onclick="switchTab('requests')">
+              <span class="tab-icon">📬</span>Requests
+            </button>
+            <button class="tab-btn ${tab==='rewards'?'active':''}" onclick="switchTab('rewards')">
+              <span class="tab-icon">🎁</span>Rewards${summary.pendingRedemptions > 0 ? `<span style="background:var(--coral);color:white;border-radius:50%;width:14px;height:14px;font-size:0.55rem;display:inline-flex;align-items:center;justify-content:center;margin-left:2px;">${summary.pendingRedemptions}</span>` : ''}
+            </button>
+            <button class="tab-btn ${tab==='children'?'active':''}" onclick="switchTab('children')">
+              <span class="tab-icon">👧</span>Children
+            </button>
+            <button class="tab-btn ${tab==='settings'?'active':''}" onclick="switchTab('settings')">
+              <span class="tab-icon">⚙️</span>Settings
+            </button>
+          </div>
+
+          <div id="tab-content">${this._renderTab(tab)}</div>
+        </div>`;
+    },
+
+    _renderTab(tab) {
+      if (tab === 'tasks')    return this._tasks();
+      if (tab === 'requests') return this._requests();
+      if (tab === 'rewards')  return this._rewards();
+      if (tab === 'children') return this._children();
+      if (tab === 'settings') return this._settings();
+      return '';
+    },
+
+    _tasks() {
+      const tasks = State.data.tasks;
+      const todayStr = today(), weekStr = getWeekStart();
+      if (!tasks.length) return `
+        <div class="section-pad">
+          <div class="empty-state">
+            <span class="empty-emoji">📋</span>
+            <h3>No tasks yet</h3>
+            <p>Tap + to add your first task</p>
+          </div>
+        </div>
+        <button class="fab" onclick="openAddTask()">+</button>`;
+
+      const cards = tasks.map(task => {
+        const assigneeName = task.assignedTo === 'all'
+          ? 'Everyone 👨‍👩‍👧‍👦'
+          : esc((State.getChild(task.assignedTo) || {}).name || 'Unknown');
+        const periodKey = task.recurrence === 'weekly' ? weekStr : todayStr;
+        const awaitingComps = State.data.taskCompletions.filter(
+          c => c.taskId === task.id && c.date === periodKey && c.status === 'done-awaiting'
+        );
+        const verifiedComps = State.data.taskCompletions.filter(
+          c => c.taskId === task.id && c.date === periodKey && c.status === 'verified'
+        );
+
+        return `<div class="task-card">
+          <div class="task-card-header">
+            <span class="task-cat-icon">${CAT_EMOJI[task.category]||'✨'}</span>
+            <div class="task-card-info">
+              <div class="task-card-title">${esc(task.title)}</div>
+              ${task.dueTime ? `<div class="task-card-sub">⏰ ${esc(task.dueTime)}</div>` : ''}
+              ${task.description ? `<div class="task-card-sub">${esc(task.description)}</div>` : ''}
+            </div>
+            <div class="task-edit-btns">
+              <button class="icon-btn" onclick="openEditTask('${task.id}')" title="Edit">✏️</button>
+              <button class="icon-btn" onclick="doDeleteTask('${task.id}')" title="Delete">🗑️</button>
+            </div>
+          </div>
+          <div class="task-card-meta">
+            <span class="badge badge-${task.category}">${task.category}</span>
+            <span class="badge badge-${task.recurrence}">${task.recurrence}</span>
+            <span style="font-size:0.78rem;color:var(--muted);">👤 ${assigneeName}</span>
+            ${starsHTML(task.points)}
+          </div>
+          ${verifiedComps.length ? `<div style="margin-top:8px;font-size:0.78rem;color:var(--green);">✅ Verified by: ${verifiedComps.map(c=>{const ch=State.getChild(c.childId);return ch?ch.emoji+' '+esc(ch.name):'?';}).join(', ')}</div>` : ''}
+          ${awaitingComps.length ? `
+            <div style="margin-top:10px;">
+              <div style="font-size:0.78rem;font-weight:600;color:var(--blue);margin-bottom:7px;">⏳ Awaiting your verification:</div>
+              ${awaitingComps.map(comp => {
+                const ch = State.getChild(comp.childId);
+                return `<div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;">
+                  <span style="font-size:0.88rem;">${ch ? ch.emoji+' '+esc(ch.name) : '?'}</span>
+                  <button class="btn btn-success btn-sm" onclick="doVerifyTask('${comp.id}')">✓ Verify</button>
+                  <button class="btn btn-ghost btn-sm" onclick="doSkipTask('${comp.id}')">Skip</button>
+                </div>`;
+              }).join('')}
+            </div>` : ''}
+        </div>`;
+      }).join('');
+
+      return `<div class="section-pad">${cards}<div class="spacer80"></div></div>
+              <button class="fab" onclick="openAddTask()">+</button>`;
+    },
+
+    _requests() {
+      const reqs = [...State.data.requests].sort((a, b) => {
+        if (a.status === 'pending' && b.status !== 'pending') return -1;
+        if (a.status !== 'pending' && b.status === 'pending') return 1;
+        const o = { high: 0, medium: 1, low: 2 };
+        return (o[a.urgency]||1) - (o[b.urgency]||1);
+      });
+
+      if (!reqs.length) return `
+        <div class="section-pad">
+          <div class="empty-state">
+            <span class="empty-emoji">📬</span>
+            <h3>No requests yet</h3>
+            <p>Children's requests will appear here</p>
+          </div>
+        </div>`;
+
+      return `<div class="section-pad">${reqs.map(req => {
+        const child = State.getChild(req.childId);
+        const isPending = req.status === 'pending';
+        return `<div class="request-card" id="reqcard-${req.id}">
+          <div class="request-card-header">
+            <span class="request-icon">${REQ_EMOJI[req.category]||'💬'}</span>
+            <span class="request-title">${esc(req.title)}</span>
+          </div>
+          <div class="request-meta">
+            <span class="request-child-tag">${child ? child.emoji+' '+esc(child.name) : '?'}</span>
+            <span class="badge badge-${req.urgency}">${req.urgency} urgency</span>
+            <span class="badge badge-${req.status}">${req.status}</span>
+            <span style="font-size:0.72rem;color:var(--muted);">${formatDate(req.createdAt)}</span>
+          </div>
+          ${req.description ? `<div class="request-desc">${esc(req.description)}</div>` : ''}
+          ${req.reply ? `<div class="reply-bubble ${req.status}">💬 Reply: ${esc(req.reply)}</div>` : ''}
+          ${isPending ? `
+            <div class="request-actions">
+              <button class="btn btn-success btn-sm" onclick="doApproveRequest('${req.id}')">✓ Approve</button>
+              <button class="btn btn-danger btn-sm" onclick="showRejectArea('${req.id}')">✗ Reject</button>
+            </div>
+            <div class="reply-area" id="ra-${req.id}">
+              <textarea class="form-textarea" id="rt-${req.id}" placeholder="Reply message (optional)..." style="margin:8px 0;min-height:60px;"></textarea>
+              <button class="btn btn-danger btn-sm" onclick="doRejectRequest('${req.id}')">Confirm Reject</button>
+            </div>` : ''}
+        </div>`;
+      }).join('')}</div>`;
+    },
+
+    _children() {
+      const children = State.data.children;
+      const todayStr = today();
+      if (!children.length) return `
+        <div class="section-pad">
+          <div class="empty-state">
+            <span class="empty-emoji">👧</span>
+            <h3>No children added</h3>
+            <p>Tap + to add your first child</p>
+          </div>
+        </div>
+        <button class="fab" onclick="openAddChild()">+</button>`;
+
+      return `<div class="section-pad">
+        ${children.map(child => {
+          const totalTasks = State.data.tasks.filter(t => t.assignedTo === 'all' || t.assignedTo === child.id).length;
+          const verifiedToday = State.data.taskCompletions.filter(c => c.childId === child.id && c.status === 'verified' && c.date === todayStr).length;
+          return `<div class="child-stat-card">
+            <div class="child-stat-header">
+              <span class="child-stat-emoji">${child.emoji}</span>
+              <div style="flex:1">
+                <div class="child-stat-name">${esc(child.name)}</div>
+                <div class="child-stat-pin">PIN: ${child.pin}</div>
+              </div>
+              <div class="child-stat-points">⭐ ${child.totalPoints}</div>
+            </div>
+            <div style="font-size:0.8rem;color:var(--muted);margin-bottom:10px;">
+              ${totalTasks} tasks assigned &nbsp;·&nbsp; ${verifiedToday} verified today
+            </div>
+            <div class="task-card-actions">
+              <button class="btn btn-ghost btn-sm" onclick="openEditChild('${child.id}')">✏️ Edit</button>
+              <button class="btn btn-danger btn-sm" onclick="doRemoveChild('${child.id}')">🗑️ Remove</button>
+            </div>
+          </div>`;
+        }).join('')}
+        <div class="spacer80"></div>
+      </div>
+      <button class="fab" onclick="openAddChild()">+</button>`;
+    },
+
+    _rewards() {
+      const rewards = State.data.rewards || [];
+      const redemptions = (State.data.redemptions || []).filter(r => r.status === 'pending');
+
+      const redemptionCards = redemptions.length ? `
+        <div class="section-title" style="margin-bottom:8px;">⏳ Pending Redemptions</div>
+        ${redemptions.map(rd => {
+          const child = State.getChild(rd.childId);
+          const reward = (State.data.rewards||[]).find(r => r.id === rd.rewardId);
+          return `<div class="redemption-card" id="rdcard-${rd.id}">
+            <div class="redemption-header">
+              <span style="font-size:1.5rem;">${reward ? reward.icon : '🎁'}</span>
+              <div style="flex:1">
+                <div style="font-family:'Nunito',sans-serif;font-weight:700;font-size:0.92rem;">${reward ? esc(reward.title) : 'Unknown reward'}</div>
+                <div style="font-size:0.78rem;color:var(--muted);">${child ? child.emoji+' '+esc(child.name) : '?'} &nbsp;·&nbsp; ${formatDate(rd.createdAt)}</div>
+              </div>
+              <div class="reward-cost-tag">⭐ ${reward ? reward.cost : '?'}</div>
+            </div>
+            <div style="display:flex;gap:7px;margin-top:6px;">
+              <button class="btn btn-success btn-sm" onclick="doApproveRedemption('${rd.id}')">✓ Approve</button>
+              <button class="btn btn-danger btn-sm" onclick="doRejectRedemption('${rd.id}')">✗ Reject</button>
+            </div>
+          </div>`;
+        }).join('')}
+        <div class="divider"></div>` : '';
+
+      const rewardCards = rewards.length ? rewards.map(rw => {
+        const editBtns = `<div style="display:flex;gap:4px;margin-top:6px;justify-content:flex-end;">
+          <button class="icon-btn" onclick="doToggleReward('${rw.id}')" title="${rw.isActive?'Deactivate':'Activate'}">${rw.isActive?'👁️':'🚫'}</button>
+          <button class="icon-btn" onclick="openEditReward('${rw.id}')" title="Edit">✏️</button>
+          <button class="icon-btn" onclick="doDeleteReward('${rw.id}')" title="Delete">🗑️</button>
+        </div>`;
+        if (rw.isGroup) {
+          const prog = State.getGroupProgress(rw.id);
+          const pct  = Math.min(100, Math.round((prog.total / rw.cost) * 100));
+          const goalMet = prog.total >= rw.cost;
+          const contribLines = prog.contributions.map(c => {
+            const ch = State.getChild(c.childId);
+            return ch ? `${ch.emoji} ${esc(ch.name)}: ${c.amount} ⭐` : '';
+          }).filter(Boolean).join(' &nbsp;·&nbsp; ');
+          return `<div class="reward-card${rw.isActive?'':' inactive'}" style="flex-direction:column;align-items:stretch;gap:8px;${goalMet?'border:2px solid var(--yellow);background:linear-gradient(135deg,#FFFBEB,#FFF9F5);':''}">
+            <div style="display:flex;align-items:center;gap:10px;">
+              <span class="reward-icon-big">${rw.icon}</span>
+              <div class="reward-info">
+                <div style="display:flex;align-items:center;gap:5px;">
+                  <div class="reward-title">${esc(rw.title)}</div>
+                  <span style="background:linear-gradient(135deg,var(--teal),var(--blue));color:white;border-radius:50px;padding:2px 8px;font-size:0.68rem;font-family:'Nunito',sans-serif;font-weight:700;">👨‍👩‍👧‍👦 Family</span>
+                </div>
+                ${rw.description ? `<div class="reward-desc">${esc(rw.description)}</div>` : ''}
+              </div>
+              <div class="reward-cost-tag" style="flex-shrink:0;">⭐ ${rw.cost}</div>
+            </div>
+            <div>
+              <div style="display:flex;justify-content:space-between;font-size:0.78rem;margin-bottom:5px;">
+                <span style="color:var(--muted);">${prog.contributions.length ? contribLines : 'No contributions yet'}</span>
+                <span style="font-family:'Nunito',sans-serif;font-weight:700;color:${goalMet?'#D97706':'var(--text)'};">${prog.total} / ${rw.cost} ⭐</span>
+              </div>
+              <div class="progress-wrap">
+                <div class="progress-bar" style="width:${pct}%;${goalMet?'background:linear-gradient(90deg,var(--yellow),var(--orange));':''}"></div>
+              </div>
+            </div>
+            ${goalMet ? `
+              <div style="display:flex;align-items:center;justify-content:space-between;background:#FEF3C7;border-radius:10px;padding:8px 12px;">
+                <span style="font-size:0.85rem;font-weight:600;">🎉 Goal reached! Ready to approve.</span>
+                <div style="display:flex;gap:6px;">
+                  <button class="btn btn-success btn-sm" onclick="doApproveGroupReward('${prog.rdId}')">✓ Approve</button>
+                  <button class="btn btn-danger btn-sm" onclick="doRejectGroupReward('${prog.rdId}')">✗ Cancel</button>
+                </div>
+              </div>` : ''}
+            ${editBtns}
+          </div>`;
+        }
+        return `<div class="reward-card${rw.isActive ? '' : ' inactive'}">
+          <span class="reward-icon-big">${rw.icon}</span>
+          <div class="reward-info">
+            <div class="reward-title">${esc(rw.title)}</div>
+            ${rw.description ? `<div class="reward-desc">${esc(rw.description)}</div>` : ''}
+          </div>
+          <div style="display:flex;flex-direction:column;align-items:flex-end;gap:6px;flex-shrink:0;">
+            <div class="reward-cost-tag">⭐ ${rw.cost}</div>
+            <div style="display:flex;gap:4px;">
+              <button class="icon-btn" onclick="doToggleReward('${rw.id}')" title="${rw.isActive?'Deactivate':'Activate'}">${rw.isActive?'👁️':'🚫'}</button>
+              <button class="icon-btn" onclick="openEditReward('${rw.id}')" title="Edit">✏️</button>
+              <button class="icon-btn" onclick="doDeleteReward('${rw.id}')" title="Delete">🗑️</button>
+            </div>
+          </div>
+        </div>`;
+      }).join('') : `
+        <div class="empty-state">
+          <span class="empty-emoji">🎁</span>
+          <h3>No rewards yet</h3>
+          <p>Tap + to add your first reward for the kids</p>
+        </div>`;
+
+      return `<div class="section-pad">
+        ${redemptionCards}
+        <div class="section-title">🎁 Reward Catalog</div>
+        ${rewardCards}
+        <div class="spacer80"></div>
+      </div>
+      <button class="fab" onclick="openAddReward()">+</button>`;
+    },
+
+    _settings() {
+      return `<div class="section-pad" style="padding-top:4px;">
+        <div class="card">
+          <div class="card-title" style="margin-bottom:12px;">🏠 Family Motto</div>
+          <div class="form-group" style="margin-bottom:10px;">
+            <input type="text" class="form-input" id="set-motto" value="${esc(State.data.familyMotto||'')}" placeholder="Enter your family motto...">
+          </div>
+          <button class="btn btn-primary btn-sm" onclick="doSaveMotto()">Save Motto</button>
+        </div>
+
+        <div class="card">
+          <div class="card-title" style="margin-bottom:12px;">🔑 Change Parent PIN</div>
+          <div class="form-group" style="margin-bottom:10px;">
+            <label class="form-label">New PIN (4 digits)</label>
+            <input type="tel" class="form-input" id="set-pin" placeholder="e.g. 5678" maxlength="4" pattern="[0-9]{4}" inputmode="numeric">
+            <span class="form-error" id="set-pin-error">PIN must be exactly 4 digits</span>
+          </div>
+          <button class="btn btn-primary btn-sm" onclick="doSaveParentPin()">Change PIN</button>
+        </div>
+
+        <div class="card" style="background:linear-gradient(135deg,#FFF5F5,#FFF9F5);border:1px solid #FEE2E2;">
+          <div class="card-title" style="color:var(--coral);margin-bottom:5px;">⚠️ Reset App Data</div>
+          <div class="card-desc" style="margin-bottom:12px;">Restores demo data. All changes will be lost.</div>
+          <button class="btn btn-danger btn-sm" onclick="doResetApp()">Reset to Demo</button>
+        </div>
+      </div>`;
+    }
+  },
+
+  /* ---- CHILD HOME ---- */
+  'child-home': {
+    render(params) {
+      const child = State.getChild(params.childId);
+      if (!child) { Router.navigate('home'); return; }
+
+      const tasks = State.getChildTasks(child.id);
+      const motivational = getMotivational(child.name);
+      const MILESTONE = 50;
+      const progress = Math.min(((child.totalPoints % MILESTONE) / MILESTONE) * 100, 100);
+      const nextMilestone = (Math.floor(child.totalPoints / MILESTONE) + 1) * MILESTONE;
+      const pendingReqCount = State.data.requests.filter(r => r.childId === child.id && r.status === 'pending').length;
+      const allVerified = tasks.length > 0 && tasks.every(({ comp }) => comp.status === 'verified');
+
+      const taskCards = tasks.map(({ task, comp }) => {
+        const isAwaiting = comp.status === 'done-awaiting';
+        const isVerified = comp.status === 'verified';
+        return `<div class="task-card ${comp.status === 'verified' ? 'verified' : ''} ${comp.status === 'done-awaiting' ? 'done-awaiting' : ''}">
+          <div class="task-card-header">
+            <span class="task-cat-icon">${CAT_EMOJI[task.category]||'✨'}</span>
+            <div class="task-card-info">
+              <div class="task-card-title" style="${isVerified ? 'text-decoration:line-through;color:var(--muted)' : ''}">${esc(task.title)}</div>
+              ${task.description ? `<div class="task-card-sub">${esc(task.description)}</div>` : ''}
+              ${task.dueTime ? `<div class="task-card-sub">⏰ ${esc(task.dueTime)}</div>` : ''}
+            </div>
+            ${starsHTML(task.points)}
+          </div>
+          <div class="task-card-meta">
+            <span class="badge badge-${task.category}">${task.category}</span>
+            ${isVerified ? '<span class="badge badge-verified">✅ Verified!</span>' : ''}
+            ${isAwaiting ? '<span class="badge badge-done-awaiting">⏳ Awaiting approval</span>' : ''}
+          </div>
+          ${comp.status === 'pending' ? `
+            <div class="task-card-actions">
+              <button class="btn btn-child btn-sm" onclick="doMarkTaskDone('${comp.id}','${child.id}')">✓ Mark Done</button>
+            </div>` : ''}
+        </div>`;
+      }).join('');
+
+      document.getElementById('view-child-home').innerHTML = `
+        <div class="child-header">
+          <div class="child-header-top">
+            <button onclick="doLogout()" class="logout-btn" style="background:rgba(255,255,255,0.2);border:none;color:white;">← Back</button>
+            <div style="display:flex;gap:6px;">
+              <button onclick="Router.navigate('child-rewards',{childId:'${child.id}'})"
+                class="logout-btn" style="background:rgba(255,255,255,0.2);border:none;color:white;">
+                🎁 Store
+              </button>
+              <button onclick="Router.navigate('child-request-history',{childId:'${child.id}'})"
+                class="logout-btn" style="background:rgba(255,255,255,0.2);border:none;color:white;">
+                📬${pendingReqCount ? ' 🔴' : ''}
+              </button>
+            </div>
+          </div>
+          <div class="child-header-info">
+            <div class="child-avatar">${child.emoji}</div>
+            <div>
+              <h2>${esc(child.name)}</h2>
+              <div class="motivational">${motivational}</div>
+            </div>
+          </div>
+          <div class="child-points-card">
+            <div class="child-points-row">
+              <div>
+                <div class="points-label">Total Stars</div>
+                <div class="points-big" id="pts-${child.id}">⭐ <span id="pts-num-${child.id}">${child.totalPoints}</span></div>
+              </div>
+              <div class="milestone-info">
+                <div class="points-label">Next milestone</div>
+                <div class="milestone-val">${nextMilestone} ⭐</div>
+              </div>
+            </div>
+            <div class="progress-wrap-white">
+              <div class="progress-bar-white" style="width:${progress}%"></div>
+            </div>
+          </div>
+        </div>
+
+        <div style="padding:18px 16px 90px;">
+          ${allVerified ? `
+            <div class="empty-state">
+              <span class="empty-emoji">🎉</span>
+              <h3>All done for today!</h3>
+              <p>Amazing work! You've completed everything!</p>
+            </div>` : tasks.length === 0 ? `
+            <div class="empty-state">
+              <span class="empty-emoji">😊</span>
+              <h3>No tasks today</h3>
+              <p>Enjoy your free time!</p>
+            </div>` : `
+            <div class="section-title">📋 Today's Tasks</div>
+            ${taskCards}`}
+        </div>
+
+        <button class="fab fab-child" onclick="Router.navigate('child-request-form',{childId:'${child.id}'})" title="Make a request">✉️</button>`;
+    }
+  },
+
+  /* ---- CHILD REQUEST FORM ---- */
+  'child-request-form': {
+    render(params) {
+      const child = State.getChild(params.childId);
+      if (!child) { Router.navigate('home'); return; }
+
+      document.getElementById('view-child-request-form').innerHTML = `
+        <div class="view-header">
+          <button class="btn-back" onclick="Router.back()">←</button>
+          <h2>${child.emoji} New Request</h2>
+        </div>
+        <div style="padding:16px 16px 80px;">
+          <div class="form-group">
+            <label class="form-label">What do you want to ask? *</label>
+            <input type="text" class="form-input" id="rq-title" placeholder="e.g. Trip to the cinema">
+            <span class="form-error" id="rq-title-err">Please enter a title</span>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Category</label>
+            <div class="choice-grid choice-grid-2" id="rq-cat-grid">
+              ${['outing','purchase','permission','other'].map(cat => `
+                <button type="button" class="choice-btn" id="rqc-${cat}" onclick="selectReqCat('${cat}')">
+                  ${REQ_EMOJI[cat]} ${cat.charAt(0).toUpperCase()+cat.slice(1)}
+                </button>`).join('')}
+            </div>
+            <input type="hidden" id="rq-category" value="other">
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Tell us more (optional)</label>
+            <textarea class="form-textarea" id="rq-desc" placeholder="Add any details that might help..."></textarea>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">How urgent? *</label>
+            <div class="choice-grid choice-grid-3">
+              <button type="button" class="choice-btn" id="rqu-low"    onclick="selectReqUrg('low')">🟢 Low</button>
+              <button type="button" class="choice-btn" id="rqu-medium" onclick="selectReqUrg('medium')">🟡 Medium</button>
+              <button type="button" class="choice-btn" id="rqu-high"   onclick="selectReqUrg('high')">🔴 High</button>
+            </div>
+            <input type="hidden" id="rq-urgency" value="">
+            <span class="form-error" id="rq-urg-err">Please select urgency</span>
+          </div>
+
+          <button class="btn btn-child btn-full" style="margin-top:6px;" onclick="doSubmitRequest('${params.childId}')">
+            ✉️ Send Request to Parents
+          </button>
+        </div>`;
+
+      setTimeout(() => selectReqCat('other'), 0);
+    }
+  },
+
+  /* ---- CHILD REWARDS STORE ---- */
+  'child-rewards': {
+    render(params) {
+      const child = State.getChild(params.childId);
+      if (!child) { Router.navigate('home'); return; }
+
+      const rewards = (State.data.rewards || []).filter(r => r.isActive);
+      const myRedemptions = (State.data.redemptions || [])
+        .filter(r => r.childId === child.id)
+        .sort((a, b) => b.createdAt - a.createdAt);
+
+      const rewardCards = rewards.length ? rewards.map(rw => {
+        // ---- GROUP REWARD ----
+        if (rw.isGroup) {
+          const prog      = State.getGroupProgress(rw.id);
+          const pct       = Math.min(100, Math.round((prog.total / rw.cost) * 100));
+          const goalMet   = prog.total >= rw.cost;
+          const myContrib = prog.contributions.find(c => c.childId === child.id);
+          const contribLines = State.data.children.map(ch => {
+            const c = prog.contributions.find(x => x.childId === ch.id);
+            return `<span style="display:inline-flex;align-items:center;gap:3px;">${ch.emoji} ${esc(ch.name)}: <b>${c ? c.amount : 0} ⭐</b></span>`;
+          }).join(' &nbsp;·&nbsp; ');
+          return `<div class="reward-store-card" style="border-color:${goalMet?'var(--yellow)':'rgba(78,205,196,0.35)'};${goalMet?'background:linear-gradient(135deg,#FFFBEB,#FFF9F5);':''}">
+            <div class="reward-store-header">
+              <span class="reward-store-icon">${rw.icon}</span>
+              <div style="flex:1">
+                <div style="display:flex;align-items:center;gap:5px;flex-wrap:wrap;">
+                  <div class="reward-store-title">${esc(rw.title)}</div>
+                  <span style="background:linear-gradient(135deg,var(--teal),var(--blue));color:white;border-radius:50px;padding:2px 8px;font-size:0.65rem;font-family:'Nunito',sans-serif;font-weight:700;">👨‍👩‍👧‍👦 Family</span>
+                </div>
+                ${rw.description ? `<div class="reward-desc">${esc(rw.description)}</div>` : ''}
+              </div>
+            </div>
+            <div style="margin:8px 0 4px;">
+              <div style="display:flex;justify-content:space-between;font-size:0.77rem;margin-bottom:5px;">
+                <span style="color:var(--muted);">${contribLines}</span>
+                <span style="font-family:'Nunito',sans-serif;font-weight:700;color:${goalMet?'#D97706':'var(--text)'};">${prog.total} / ${rw.cost} ⭐</span>
+              </div>
+              <div class="progress-wrap" style="height:9px;">
+                <div class="progress-bar" style="width:${pct}%;${goalMet?'background:linear-gradient(90deg,var(--yellow),var(--orange));':''}"></div>
+              </div>
+            </div>
+            <div class="reward-store-footer" style="margin-top:8px;">
+              <div class="reward-cost-tag">Goal: ${rw.cost} ⭐</div>
+              ${goalMet
+                ? `<span class="badge badge-done-awaiting">🎉 Goal reached! Waiting for parent</span>`
+                : `<button class="btn btn-child btn-sm" onclick="openContributeModal('${rw.id}','${child.id}')">
+                    ${myContrib ? `✏️ Change (${myContrib.amount} ⭐)` : '⭐ Contribute'}
+                  </button>`
+              }
+            </div>
+          </div>`;
+        }
+        // ---- INDIVIDUAL REWARD ----
+        const canAfford = child.totalPoints >= rw.cost;
+        const pending = myRedemptions.find(r => r.rewardId === rw.id && !r.isGroup && r.status === 'pending');
+        let cls = 'reward-store-card';
+        if (pending) cls += ' already-pending';
+        else if (canAfford) cls += ' can-afford';
+        else cls += ' cant-afford';
+        return `<div class="${cls}">
+          <div class="reward-store-header">
+            <span class="reward-store-icon">${rw.icon}</span>
+            <div style="flex:1">
+              <div class="reward-store-title">${esc(rw.title)}</div>
+              ${rw.description ? `<div class="reward-desc">${esc(rw.description)}</div>` : ''}
+            </div>
+          </div>
+          <div class="reward-store-footer">
+            <div class="reward-cost-tag">⭐ ${rw.cost} stars</div>
+            ${pending
+              ? `<span class="badge badge-done-awaiting">⏳ Pending approval</span>`
+              : canAfford
+                ? `<button class="btn btn-child btn-sm" onclick="doRedeemReward('${rw.id}','${child.id}')">🎁 Redeem</button>`
+                : `<span style="font-size:0.78rem;color:var(--muted);">Need ${rw.cost - child.totalPoints} more ⭐</span>`
+            }
+          </div>
+        </div>`;
+      }).join('') : `
+        <div class="empty-state">
+          <span class="empty-emoji">🎁</span>
+          <h3>No rewards available</h3>
+          <p>Ask your parents to add rewards to the store</p>
+        </div>`;
+
+      const historyCards = myRedemptions.length ? myRedemptions.slice(0, 10).map(rd => {
+        const rw = (State.data.rewards || []).find(r => r.id === rd.rewardId);
+        return `<div class="reward-card" style="border-left:3px solid ${rd.status==='approved'?'var(--green)':rd.status==='rejected'?'var(--coral)':'var(--blue)'};">
+          <span class="reward-icon-big">${rw ? rw.icon : '🎁'}</span>
+          <div class="reward-info">
+            <div class="reward-title">${rw ? esc(rw.title) : 'Unknown'}</div>
+            <div class="reward-desc">${formatDate(rd.createdAt)}</div>
+          </div>
+          <span class="badge badge-${rd.status}">
+            ${rd.status === 'approved' ? '✅ Approved' : rd.status === 'rejected' ? '❌ Rejected' : '⏳ Pending'}
+          </span>
+        </div>`;
+      }).join('') : '';
+
+      document.getElementById('view-child-rewards').innerHTML = `
+        <div class="view-header" style="background:linear-gradient(135deg,var(--teal),var(--blue));border-bottom:none;">
+          <button class="btn-back" onclick="Router.back()" style="background:rgba(255,255,255,0.2);color:white;">←</button>
+          <h2 style="color:white;">${child.emoji} Reward Store</h2>
+          <div style="background:rgba(255,255,255,0.2);border-radius:50px;padding:5px 12px;font-family:'Nunito',sans-serif;font-weight:800;font-size:0.9rem;color:white;">
+            ⭐ ${child.totalPoints}
+          </div>
+        </div>
+        <div style="padding:16px 16px 30px;">
+          <div class="section-title">🛍️ Available Rewards</div>
+          ${rewardCards}
+          ${historyCards ? `
+            <div class="section-title" style="margin-top:20px;">📜 My Redemption History</div>
+            ${historyCards}` : ''}
+        </div>`;
+    }
+  },
+
+  /* ---- CHILD REQUEST HISTORY ---- */
+  'child-request-history': {
+    render(params) {
+      const child = State.getChild(params.childId);
+      if (!child) { Router.navigate('home'); return; }
+
+      const reqs = State.data.requests
+        .filter(r => r.childId === child.id)
+        .sort((a, b) => b.createdAt - a.createdAt);
+
+      const cards = reqs.map(req => `
+        <div class="request-card">
+          <div class="request-card-header">
+            <span class="request-icon">${REQ_EMOJI[req.category]||'💬'}</span>
+            <span class="request-title">${esc(req.title)}</span>
+          </div>
+          <div class="request-meta">
+            <span class="badge badge-${req.urgency}">${req.urgency}</span>
+            <span class="badge badge-${req.status}">
+              ${req.status === 'approved' ? '✅ Approved' : req.status === 'rejected' ? '❌ Rejected' : '⏳ Pending'}
+            </span>
+            <span style="font-size:0.73rem;color:var(--muted);">${formatDate(req.createdAt)}</span>
+          </div>
+          ${req.description ? `<div class="request-desc">${esc(req.description)}</div>` : ''}
+          ${req.reply ? `<div class="reply-bubble ${req.status}">💬 Parent replied: ${esc(req.reply)}</div>` : ''}
+        </div>`).join('');
+
+      document.getElementById('view-child-request-history').innerHTML = `
+        <div class="view-header">
+          <button class="btn-back" onclick="Router.back()">←</button>
+          <h2>${child.emoji} My Requests</h2>
+        </div>
+        <div style="padding:12px 16px 24px;">
+          ${reqs.length ? cards : `
+            <div class="empty-state">
+              <span class="empty-emoji">📬</span>
+              <h3>No requests yet</h3>
+              <p>Tap the ✉️ button on your home screen to send a request</p>
+            </div>`}
+        </div>`;
+    }
+  }
+};
+
+/* =====================================================================
+   GLOBAL ACTION FUNCTIONS
+===================================================================== */
+
+function loginAsChild(childId)   { Router.navigate('pin', { role: 'child', childId }); }
+function doLogout()              { State.currentUser = null; Router.stack = []; Router.navigate('home'); }
+
+function switchTab(tab) {
+  Views['parent-dashboard']._tab = tab;
+  Views['parent-dashboard'].render({ tab });
+  const el = document.getElementById('view-parent-dashboard');
+  if (el) { el.classList.add('active'); el.scrollTop = 0; }
+}
+
+/* --- TASKS --- */
+function doMarkTaskDone(compId, childId) {
+  const comp = State.data.taskCompletions.find(c => c.id === compId);
+  if (!comp) return;
+  comp.status = 'done-awaiting';
+  State.save();
+  spawnConfetti();
+  showToast('✅ Task marked done! Waiting for parent approval…');
+  setTimeout(() => Router.navigate('child-home', { childId }, false), 400);
+}
+
+function doVerifyTask(compId) {
+  const comp = State.data.taskCompletions.find(c => c.id === compId);
+  if (!comp) return;
+  const task = State.getTask(comp.taskId);
+  const child = State.getChild(comp.childId);
+  if (!task || !child) return;
+  comp.status = 'verified';
+  child.totalPoints += task.points;
+  State.save();
+  showToast(`⭐ ${child.name} earned ${task.points} star${task.points > 1 ? 's' : ''}!`);
+  switchTab(Views['parent-dashboard']._tab);
+}
+
+function doSkipTask(compId) {
+  const comp = State.data.taskCompletions.find(c => c.id === compId);
+  if (!comp) return;
+  comp.status = 'skipped';
+  State.save();
+  showToast('Task skipped');
+  switchTab(Views['parent-dashboard']._tab);
+}
+
+function _taskModalHTML(task) {
+  const t = task || {};
+  return `
+    <div class="form-group">
+      <label class="form-label">Title *</label>
+      <input type="text" class="form-input" id="tm-title" value="${esc(t.title||'')}" placeholder="e.g. Clean your room">
+      <span class="form-error" id="tm-title-err">Please enter a title</span>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Description (optional)</label>
+      <input type="text" class="form-input" id="tm-desc" value="${esc(t.description||'')}" placeholder="Extra details...">
+    </div>
+    <div class="form-group">
+      <label class="form-label">Category</label>
+      <select class="form-select" id="tm-cat">
+        <option value="chores"    ${t.category==='chores'?'selected':''}>🧹 Chores</option>
+        <option value="homework"  ${t.category==='homework'?'selected':''}>📚 Homework</option>
+        <option value="self-care" ${t.category==='self-care'?'selected':''}>🛁 Self-care</option>
+        <option value="other"     ${(!t.category||t.category==='other')?'selected':''}>✨ Other</option>
+      </select>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Assign to</label>
+      <select class="form-select" id="tm-assign">
+        <option value="all" ${t.assignedTo==='all'||!t.assignedTo?'selected':''}>Everyone 👨‍👩‍👧‍👦</option>
+        ${State.data.children.map(c=>`<option value="${c.id}" ${t.assignedTo===c.id?'selected':''}>${c.emoji} ${esc(c.name)}</option>`).join('')}
+      </select>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Recurrence</label>
+      <select class="form-select" id="tm-rec">
+        <option value="daily"    ${t.recurrence==='daily'||!t.recurrence?'selected':''}>📅 Daily</option>
+        <option value="weekly"   ${t.recurrence==='weekly'?'selected':''}>📆 Weekly</option>
+        <option value="one-time" ${t.recurrence==='one-time'?'selected':''}>🎯 One-time</option>
+      </select>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Points (1–5 stars)</label>
+      <div class="star-picker" id="tm-stars">
+        ${[1,2,3,4,5].map(n=>`<button type="button" class="star-pick-btn${n<=(t.points||2)?' filled':''}" onclick="selectTaskPoints(${n})">★</button>`).join('')}
+      </div>
+      <input type="hidden" id="tm-points" value="${t.points||2}">
+    </div>
+    <div class="form-group">
+      <label class="form-label">Due time (optional)</label>
+      <input type="text" class="form-input" id="tm-due" value="${esc(t.dueTime||'')}" placeholder="e.g. before dinner">
+    </div>`;
+}
+
+function openAddTask() {
+  openModal(_taskModalHTML(null) + `<button class="btn btn-primary btn-full" onclick="doSaveTask(null)">Add Task ✓</button>`, '📋 New Task');
+}
+
+function openEditTask(taskId) {
+  const task = State.getTask(taskId);
+  if (!task) return;
+  openModal(_taskModalHTML(task) + `<button class="btn btn-primary btn-full" onclick="doSaveTask('${taskId}')">Save Changes ✓</button>`, '✏️ Edit Task');
+}
+
+function selectTaskPoints(n) {
+  document.getElementById('tm-points').value = n;
+  document.querySelectorAll('#tm-stars .star-pick-btn').forEach((b, i) => b.classList.toggle('filled', i < n));
+}
+
+function doSaveTask(editId) {
+  const title = document.getElementById('tm-title').value.trim();
+  if (!title) {
+    document.getElementById('tm-title').classList.add('error');
+    document.getElementById('tm-title-err').classList.add('show');
+    return;
+  }
+  const task = {
+    id: editId || genId(),
+    title,
+    description: document.getElementById('tm-desc').value.trim(),
+    category:    document.getElementById('tm-cat').value,
+    assignedTo:  document.getElementById('tm-assign').value,
+    recurrence:  document.getElementById('tm-rec').value,
+    points:      parseInt(document.getElementById('tm-points').value) || 2,
+    dueTime:     document.getElementById('tm-due').value.trim()
+  };
+  if (editId) {
+    const idx = State.data.tasks.findIndex(t => t.id === editId);
+    if (idx !== -1) State.data.tasks[idx] = task;
+  } else {
+    State.data.tasks.push(task);
+  }
+  State.save();
+  closeModal();
+  showToast(editId ? '✏️ Task updated!' : '✅ Task added!');
+  switchTab('tasks');
+}
+
+function doDeleteTask(taskId) {
+  if (!confirm('Delete this task? This cannot be undone.')) return;
+  State.data.tasks = State.data.tasks.filter(t => t.id !== taskId);
+  State.data.taskCompletions = State.data.taskCompletions.filter(c => c.taskId !== taskId);
+  State.save();
+  showToast('🗑️ Task deleted');
+  switchTab('tasks');
+}
+
+/* --- REQUESTS --- */
+function doApproveRequest(reqId) {
+  const req = State.data.requests.find(r => r.id === reqId);
+  if (!req) return;
+  const rt = document.getElementById('rt-' + reqId);
+  req.status = 'approved';
+  if (rt) req.reply = rt.value.trim();
+  State.save();
+  showToast('✅ Request approved!');
+  switchTab('requests');
+}
+
+function showRejectArea(reqId) {
+  const area = document.getElementById('ra-' + reqId);
+  if (area) area.classList.add('show');
+}
+
+function doRejectRequest(reqId) {
+  const req = State.data.requests.find(r => r.id === reqId);
+  if (!req) return;
+  const rt = document.getElementById('rt-' + reqId);
+  req.status = 'rejected';
+  req.reply = rt ? rt.value.trim() : '';
+  State.save();
+  showToast('Request rejected');
+  switchTab('requests');
+}
+
+/* --- CHILDREN --- */
+const CHILD_EMOJIS = ['🦁','🦋','🐼','🦊','🐨','🐸','🐯','🦄','🐻','🦀','🦅','🐬','🐙','🐧','🦉','🐺'];
+
+function _childModalHTML(child) {
+  const c = child || {};
+  return `
+    <div class="form-group">
+      <label class="form-label">Child's name *</label>
+      <input type="text" class="form-input" id="cm-name" value="${esc(c.name||'')}" placeholder="e.g. Emma">
+      <span class="form-error" id="cm-name-err">Please enter a name</span>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Choose emoji</label>
+      <div class="emoji-picker" id="cm-emoji-picker">
+        ${CHILD_EMOJIS.map(e => `<div class="emoji-option${e===(c.emoji||CHILD_EMOJIS[0])?' selected':''}" onclick="selectChildEmoji('${e}',this)">${e}</div>`).join('')}
+      </div>
+      <input type="hidden" id="cm-emoji" value="${c.emoji||CHILD_EMOJIS[0]}">
+    </div>
+    <div class="form-group">
+      <label class="form-label">PIN (4 digits) *</label>
+      <input type="tel" class="form-input" id="cm-pin" value="${c.pin||''}" placeholder="e.g. 1234" maxlength="4" pattern="[0-9]{4}" inputmode="numeric">
+      <span class="form-error" id="cm-pin-err">PIN must be exactly 4 digits</span>
+    </div>`;
+}
+
+function openAddChild() {
+  openModal(_childModalHTML(null) + `<button class="btn btn-primary btn-full" onclick="doSaveChild(null)">Add Child ✓</button>`, '👧 New Child');
+}
+
+function openEditChild(childId) {
+  const child = State.getChild(childId);
+  if (!child) return;
+  openModal(_childModalHTML(child) + `<button class="btn btn-primary btn-full" onclick="doSaveChild('${childId}')">Save Changes ✓</button>`, '✏️ Edit Child');
+}
+
+function selectChildEmoji(emoji, el) {
+  document.querySelectorAll('#cm-emoji-picker .emoji-option').forEach(e => e.classList.remove('selected'));
+  el.classList.add('selected');
+  document.getElementById('cm-emoji').value = emoji;
+}
+
+function doSaveChild(editId) {
+  const name = document.getElementById('cm-name').value.trim();
+  const pin  = document.getElementById('cm-pin').value.trim();
+  const emoji = document.getElementById('cm-emoji').value;
+  let valid = true;
+  if (!name) {
+    document.getElementById('cm-name').classList.add('error');
+    document.getElementById('cm-name-err').classList.add('show');
+    valid = false;
+  } else {
+    document.getElementById('cm-name').classList.remove('error');
+    document.getElementById('cm-name-err').classList.remove('show');
+  }
+  if (!/^\d{4}$/.test(pin)) {
+    document.getElementById('cm-pin').classList.add('error');
+    document.getElementById('cm-pin-err').classList.add('show');
+    valid = false;
+  } else {
+    document.getElementById('cm-pin').classList.remove('error');
+    document.getElementById('cm-pin-err').classList.remove('show');
+  }
+  if (!valid) return;
+  if (editId) {
+    const child = State.getChild(editId);
+    if (child) { child.name = name; child.pin = pin; child.emoji = emoji; }
+  } else {
+    State.data.children.push({ id: genId(), name, pin, emoji, totalPoints: 0 });
+  }
+  State.save();
+  closeModal();
+  showToast(editId ? '✏️ Child updated!' : '👧 Child added!');
+  switchTab('children');
+}
+
+function doRemoveChild(childId) {
+  const child = State.getChild(childId);
+  if (!child) return;
+  if (!confirm(`Remove ${child.name}? All their task history and requests will also be removed.`)) return;
+  State.data.children          = State.data.children.filter(c => c.id !== childId);
+  State.data.taskCompletions   = State.data.taskCompletions.filter(c => c.childId !== childId);
+  State.data.requests          = State.data.requests.filter(r => r.childId !== childId);
+  State.save();
+  showToast(`${child.emoji} ${child.name} removed`);
+  switchTab('children');
+}
+
+/* --- SETTINGS --- */
+function doSaveMotto() {
+  const v = document.getElementById('set-motto');
+  if (!v) return;
+  State.data.familyMotto = v.value.trim();
+  State.save();
+  showToast('✅ Motto saved!');
+}
+
+function doSaveParentPin() {
+  const v = document.getElementById('set-pin');
+  const e = document.getElementById('set-pin-error');
+  if (!v || !e) return;
+  const pin = v.value.trim();
+  if (!/^\d{4}$/.test(pin)) {
+    v.classList.add('error');
+    e.classList.add('show');
+    return;
+  }
+  v.classList.remove('error');
+  e.classList.remove('show');
+  State.data.parentPin = pin;
+  State.save();
+  v.value = '';
+  showToast('🔑 PIN changed!');
+}
+
+function doResetApp() {
+  if (!confirm('Reset all data to demo? This cannot be undone.')) return;
+  localStorage.removeItem('familyApp');
+  State.seed();
+  showToast('🔄 Reset to demo data');
+  switchTab('tasks');
+}
+
+/* --- CHILD REQUEST FORM --- */
+function selectReqCat(cat) {
+  document.getElementById('rq-category').value = cat;
+  document.querySelectorAll('#rq-cat-grid .choice-btn').forEach(b => b.classList.remove('sel-active'));
+  const btn = document.getElementById('rqc-' + cat);
+  if (btn) btn.classList.add('sel-active');
+}
+
+function selectReqUrg(urg) {
+  document.getElementById('rq-urgency').value = urg;
+  document.getElementById('rq-urg-err').classList.remove('show');
+  ['low','medium','high'].forEach(u => {
+    const b = document.getElementById('rqu-' + u);
+    if (b) { b.className = 'choice-btn' + (u === urg ? ' sel-' + u : ''); }
+  });
+}
+
+function doSubmitRequest(childId) {
+  const title = document.getElementById('rq-title').value.trim();
+  const urgency = document.getElementById('rq-urgency').value;
+  let valid = true;
+
+  if (!title) {
+    document.getElementById('rq-title').classList.add('error');
+    document.getElementById('rq-title-err').classList.add('show');
+    valid = false;
+  } else {
+    document.getElementById('rq-title').classList.remove('error');
+    document.getElementById('rq-title-err').classList.remove('show');
+  }
+  if (!urgency) {
+    document.getElementById('rq-urg-err').classList.add('show');
+    valid = false;
+  }
+  if (!valid) return;
+
+  State.data.requests.push({
+    id: genId(),
+    childId,
+    title,
+    category:    document.getElementById('rq-category').value || 'other',
+    description: document.getElementById('rq-desc').value.trim(),
+    urgency,
+    status: 'pending',
+    reply: '',
+    createdAt: Date.now()
+  });
+  State.save();
+  showToast('✉️ Request sent to parents!');
+  Router.back();
+}
+
+/* =====================================================================
+   REWARDS
+===================================================================== */
+
+const REWARD_EMOJIS = ['🎁','📱','💰','🎬','🍕','🌙','👫','🍦','🛍️','🎮','🚗','🎪','🏖️','🎨','🎵','🍰','🎭','🎳','🏀','🎠','🃏','🧸','🎡','🏆'];
+
+function _rewardModalHTML(rw) {
+  const r = rw || {};
+  const isGroup = r.isGroup || false;
+  return `
+    <div class="form-group">
+      <label class="form-label">Reward Type</label>
+      <div class="choice-grid choice-grid-2">
+        <button type="button" class="choice-btn${!isGroup?' sel-active':''}" id="rwtype-individual" onclick="selectRewardType('individual')">👤 Individual</button>
+        <button type="button" class="choice-btn${isGroup?' sel-active':''}" id="rwtype-group" onclick="selectRewardType('group')">👨‍👩‍👧‍👦 Family Challenge</button>
+      </div>
+      <input type="hidden" id="rw-isgroup" value="${isGroup?'1':'0'}">
+    </div>
+    <div class="form-group">
+      <label class="form-label">Icon</label>
+      <div class="emoji-picker" id="rw-icon-picker">
+        ${REWARD_EMOJIS.map(e => `<div class="emoji-option${e===(r.icon||'🎁')?' selected':''}" onclick="selectRewardIcon('${e}',this)">${e}</div>`).join('')}
+      </div>
+      <input type="hidden" id="rw-icon" value="${r.icon||'🎁'}">
+    </div>
+    <div class="form-group">
+      <label class="form-label">Reward name *</label>
+      <input type="text" class="form-input" id="rw-title" value="${esc(r.title||'')}" placeholder="e.g. 30 min extra screen time">
+      <span class="form-error" id="rw-title-err">Please enter a name</span>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Description (optional)</label>
+      <input type="text" class="form-input" id="rw-desc" value="${esc(r.description||'')}" placeholder="Extra details...">
+    </div>
+    <div class="form-group">
+      <label class="form-label" id="rw-cost-label">${isGroup ? 'Total stars goal (all children combined) *' : 'Cost in stars *'}</label>
+      <div style="display:flex;align-items:center;gap:10px;">
+        <button type="button" onclick="adjustRewardCost(-1)" style="width:36px;height:36px;border-radius:50%;border:2px solid var(--border);background:white;font-size:1.2rem;cursor:pointer;display:flex;align-items:center;justify-content:center;">−</button>
+        <input type="number" class="form-input" id="rw-cost" value="${r.cost||5}" min="1" max="999" style="text-align:center;font-family:'Nunito',sans-serif;font-weight:800;font-size:1.3rem;width:90px;">
+        <button type="button" onclick="adjustRewardCost(1)" style="width:36px;height:36px;border-radius:50%;border:2px solid var(--border);background:white;font-size:1.2rem;cursor:pointer;display:flex;align-items:center;justify-content:center;">+</button>
+        <span style="font-size:1.1rem;">⭐</span>
+      </div>
+      <div style="display:flex;gap:6px;margin-top:8px;flex-wrap:wrap;">
+        ${[3,5,8,10,15,20,25,30,50].map(n=>`<button type="button" onclick="document.getElementById('rw-cost').value=${n}" style="padding:4px 10px;border-radius:50px;border:1.5px solid var(--border);background:white;font-family:'Nunito',sans-serif;font-weight:700;font-size:0.8rem;cursor:pointer;">${n} ⭐</button>`).join('')}
+      </div>
+      <span class="form-error" id="rw-cost-err">Please enter a valid cost (1–999)</span>
+    </div>`;
+}
+
+function selectRewardType(type) {
+  document.getElementById('rw-isgroup').value = type === 'group' ? '1' : '0';
+  document.getElementById('rwtype-individual').className = 'choice-btn' + (type === 'individual' ? ' sel-active' : '');
+  document.getElementById('rwtype-group').className      = 'choice-btn' + (type === 'group'      ? ' sel-active' : '');
+  const lbl = document.getElementById('rw-cost-label');
+  if (lbl) lbl.textContent = type === 'group' ? 'Total stars goal (all children combined) *' : 'Cost in stars *';
+}
+
+function selectRewardIcon(icon, el) {
+  document.querySelectorAll('#rw-icon-picker .emoji-option').forEach(e => e.classList.remove('selected'));
+  el.classList.add('selected');
+  document.getElementById('rw-icon').value = icon;
+}
+
+function adjustRewardCost(delta) {
+  const el = document.getElementById('rw-cost');
+  if (!el) return;
+  const val = Math.max(1, Math.min(999, (parseInt(el.value) || 0) + delta));
+  el.value = val;
+}
+
+function openAddReward() {
+  openModal(_rewardModalHTML(null) + `<button class="btn btn-primary btn-full" style="margin-top:8px;" onclick="doSaveReward(null)">Add Reward ✓</button>`, '🎁 New Reward');
+}
+
+function openEditReward(rewardId) {
+  const rw = (State.data.rewards||[]).find(r => r.id === rewardId);
+  if (!rw) return;
+  openModal(_rewardModalHTML(rw) + `<button class="btn btn-primary btn-full" style="margin-top:8px;" onclick="doSaveReward('${rewardId}')">Save Changes ✓</button>`, '✏️ Edit Reward');
+}
+
+function doSaveReward(editId) {
+  const title = document.getElementById('rw-title').value.trim();
+  const cost  = parseInt(document.getElementById('rw-cost').value);
+  let valid = true;
+  if (!title) {
+    document.getElementById('rw-title').classList.add('error');
+    document.getElementById('rw-title-err').classList.add('show');
+    valid = false;
+  } else {
+    document.getElementById('rw-title').classList.remove('error');
+    document.getElementById('rw-title-err').classList.remove('show');
+  }
+  if (!cost || cost < 1 || cost > 999) {
+    document.getElementById('rw-cost').classList.add('error');
+    document.getElementById('rw-cost-err').classList.add('show');
+    valid = false;
+  } else {
+    document.getElementById('rw-cost').classList.remove('error');
+    document.getElementById('rw-cost-err').classList.remove('show');
+  }
+  if (!valid) return;
+
+  const reward = {
+    id: editId || genId(),
+    icon:        document.getElementById('rw-icon').value || '🎁',
+    title,
+    description: document.getElementById('rw-desc').value.trim(),
+    cost,
+    isGroup:     document.getElementById('rw-isgroup').value === '1',
+    isActive:    editId ? ((State.data.rewards||[]).find(r=>r.id===editId)||{}).isActive !== false : true
+  };
+  if (!State.data.rewards) State.data.rewards = [];
+  if (editId) {
+    const idx = State.data.rewards.findIndex(r => r.id === editId);
+    if (idx !== -1) State.data.rewards[idx] = reward;
+  } else {
+    State.data.rewards.push(reward);
+  }
+  State.save();
+  closeModal();
+  showToast(editId ? '✏️ Reward updated!' : '🎁 Reward added!');
+  switchTab('rewards');
+}
+
+function doDeleteReward(rewardId) {
+  if (!confirm('Delete this reward? Children will no longer be able to redeem it.')) return;
+  State.data.rewards = (State.data.rewards||[]).filter(r => r.id !== rewardId);
+  State.data.redemptions = (State.data.redemptions||[]).filter(r => r.rewardId !== rewardId);
+  State.save();
+  showToast('🗑️ Reward deleted');
+  switchTab('rewards');
+}
+
+function doToggleReward(rewardId) {
+  const rw = (State.data.rewards||[]).find(r => r.id === rewardId);
+  if (!rw) return;
+  rw.isActive = !rw.isActive;
+  State.save();
+  showToast(rw.isActive ? '👁️ Reward activated' : '🚫 Reward hidden from store');
+  switchTab('rewards');
+}
+
+function doRedeemReward(rewardId, childId) {
+  const child = State.getChild(childId);
+  const rw = (State.data.rewards||[]).find(r => r.id === rewardId);
+  if (!child || !rw) return;
+  if (child.totalPoints < rw.cost) {
+    showToast(`❌ Not enough stars! Need ${rw.cost - child.totalPoints} more ⭐`);
+    return;
+  }
+  const alreadyPending = (State.data.redemptions||[]).find(
+    r => r.rewardId === rewardId && r.childId === childId && r.status === 'pending'
+  );
+  if (alreadyPending) {
+    showToast('⏳ You already have a pending request for this reward');
+    return;
+  }
+  if (!State.data.redemptions) State.data.redemptions = [];
+  State.data.redemptions.push({
+    id: genId(), rewardId, childId,
+    status: 'pending', reply: '',
+    createdAt: Date.now()
+  });
+  State.save();
+  spawnConfetti();
+  showToast(`🎁 Redemption request sent for "${rw.title}"!`);
+  Router.navigate('child-rewards', { childId }, false);
+}
+
+/* --- GROUP REWARDS --- */
+
+function openContributeModal(rewardId, childId) {
+  const child  = State.getChild(childId);
+  const rw     = State.getReward(rewardId);
+  if (!child || !rw) return;
+  const prog     = State.getGroupProgress(rewardId);
+  const myContrib = prog.contributions.find(c => c.childId === childId);
+  const remaining = rw.cost - prog.total + (myContrib ? myContrib.amount : 0);
+  const maxContrib = Math.min(child.totalPoints, remaining > 0 ? remaining : child.totalPoints);
+
+  openModal(`
+    <div style="text-align:center;margin-bottom:16px;">
+      <div style="font-size:2.5rem;">${rw.icon}</div>
+      <div style="font-family:'Nunito',sans-serif;font-weight:700;font-size:1rem;margin-top:6px;">${esc(rw.title)}</div>
+      <div style="font-size:0.83rem;color:var(--muted);margin-top:4px;">Family goal: ${rw.cost} ⭐ &nbsp;·&nbsp; Collected so far: ${prog.total} ⭐</div>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Your contribution (you have ${child.totalPoints} ⭐)</label>
+      <div style="display:flex;align-items:center;gap:10px;">
+        <button type="button" onclick="adjustContrib(-1)" style="width:38px;height:38px;border-radius:50%;border:2px solid var(--border);background:white;font-size:1.3rem;cursor:pointer;flex-shrink:0;">−</button>
+        <input type="number" class="form-input" id="contrib-amount" value="${myContrib ? myContrib.amount : Math.min(5, maxContrib)}" min="1" max="${maxContrib}" style="text-align:center;font-family:'Nunito',sans-serif;font-weight:800;font-size:1.5rem;">
+        <button type="button" onclick="adjustContrib(1)" style="width:38px;height:38px;border-radius:50%;border:2px solid var(--border);background:white;font-size:1.3rem;cursor:pointer;flex-shrink:0;">+</button>
+        <span style="font-size:1.2rem;flex-shrink:0;">⭐</span>
+      </div>
+      <div style="display:flex;gap:6px;margin-top:8px;flex-wrap:wrap;">
+        ${[1,3,5,10].filter(n=>n<=maxContrib).map(n=>`<button type="button" onclick="document.getElementById('contrib-amount').value=${n}" style="padding:4px 10px;border-radius:50px;border:1.5px solid var(--border);background:white;font-family:'Nunito',sans-serif;font-weight:700;font-size:0.8rem;cursor:pointer;">${n} ⭐</button>`).join('')}
+        ${maxContrib > 0 ? `<button type="button" onclick="document.getElementById('contrib-amount').value=${maxContrib}" style="padding:4px 10px;border-radius:50px;border:1.5px solid var(--teal);background:#E8FBFA;font-family:'Nunito',sans-serif;font-weight:700;font-size:0.8rem;cursor:pointer;color:#0d7a75;">All (${maxContrib}) ⭐</button>` : ''}
+      </div>
+      <span class="form-error" id="contrib-err">Please enter an amount between 1 and ${maxContrib}</span>
+    </div>
+    <button class="btn btn-child btn-full" onclick="doContributeToGroup('${rewardId}','${childId}')">
+      ⭐ Confirm Contribution
+    </button>
+  `, `🤝 Contribute to Family Goal`);
+}
+
+function adjustContrib(delta) {
+  const el = document.getElementById('contrib-amount');
+  if (!el) return;
+  el.value = Math.max(1, (parseInt(el.value)||0) + delta);
+}
+
+function doContributeToGroup(rewardId, childId) {
+  const child  = State.getChild(childId);
+  const rw     = State.getReward(rewardId);
+  if (!child || !rw) return;
+  const amount = parseInt(document.getElementById('contrib-amount').value);
+  if (!amount || amount < 1 || amount > child.totalPoints) {
+    document.getElementById('contrib-amount').classList.add('error');
+    document.getElementById('contrib-err').classList.add('show');
+    return;
+  }
+  if (!State.data.redemptions) State.data.redemptions = [];
+  let rd = State.getGroupRedemption(rewardId);
+  if (!rd) {
+    rd = { id: genId(), rewardId, isGroup: true, contributions: [], status: 'collecting', createdAt: Date.now() };
+    State.data.redemptions.push(rd);
+  }
+  const existing = rd.contributions.find(c => c.childId === childId);
+  if (existing) {
+    existing.amount = amount;
+  } else {
+    rd.contributions.push({ childId, amount });
+  }
+  State.save();
+  closeModal();
+  const total = rd.contributions.reduce((s,c) => s+c.amount, 0);
+  const goalMet = total >= rw.cost;
+  if (goalMet) spawnConfetti();
+  showToast(goalMet
+    ? `🎉 Family goal reached! Ask a parent to approve "${rw.title}"!`
+    : `⭐ You're contributing ${amount} stars! ${rw.cost - total} more needed.`
+  );
+  Router.navigate('child-rewards', { childId }, false);
+}
+
+function doApproveGroupReward(rdId) {
+  const rd = (State.data.redemptions||[]).find(r => r.id === rdId);
+  if (!rd) return;
+  const rw = State.getReward(rd.rewardId);
+  if (!rw) return;
+  rd.contributions.forEach(c => {
+    const child = State.getChild(c.childId);
+    if (child) child.totalPoints = Math.max(0, child.totalPoints - c.amount);
+  });
+  rd.status = 'approved';
+  rd.resolvedAt = Date.now();
+  State.save();
+  spawnConfetti();
+  showToast(`🎉 Family reward approved! "${rw.title}" unlocked!`);
+  switchTab('rewards');
+}
+
+function doRejectGroupReward(rdId) {
+  const rd = (State.data.redemptions||[]).find(r => r.id === rdId);
+  if (!rd) return;
+  rd.status = 'rejected';
+  rd.resolvedAt = Date.now();
+  State.save();
+  showToast('Group reward cancelled — contributions have been returned');
+  switchTab('rewards');
+}
+
+function doApproveRedemption(rdId) {
+  const rd = (State.data.redemptions||[]).find(r => r.id === rdId);
+  if (!rd) return;
+  const rw = (State.data.rewards||[]).find(r => r.id === rd.rewardId);
+  const child = State.getChild(rd.childId);
+  if (!rw || !child) return;
+  if (child.totalPoints < rw.cost) {
+    showToast(`❌ ${child.name} only has ${child.totalPoints} ⭐ — not enough for this reward`);
+    return;
+  }
+  rd.status = 'approved';
+  rd.resolvedAt = Date.now();
+  child.totalPoints -= rw.cost;
+  State.save();
+  showToast(`✅ Approved! ${child.emoji} ${child.name} spent ${rw.cost} ⭐ on "${rw.title}"`);
+  switchTab('rewards');
+}
+
+function doRejectRedemption(rdId) {
+  const rd = (State.data.redemptions||[]).find(r => r.id === rdId);
+  if (!rd) return;
+  const child = State.getChild(rd.childId);
+  rd.status = 'rejected';
+  rd.resolvedAt = Date.now();
+  State.save();
+  showToast(`Redemption rejected`);
+  switchTab('rewards');
+}
+
+/* =====================================================================
+   BOOT
+===================================================================== */
+document.addEventListener('DOMContentLoaded', function() {
+  State.load();
+  Router.navigate('home');
+});
+</script>
+</body>
+</html>
