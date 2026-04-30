@@ -787,6 +787,55 @@
       100% { transform: scale(1); }
     }
 
+    /* ===== LANGUAGE TOGGLE ===== */
+    .lang-toggle {
+      position: absolute; top: 16px; left: 16px;
+      display: flex; gap: 4px; background: rgba(255,255,255,0.25);
+      border-radius: 50px; padding: 3px;
+    }
+    .lang-btn {
+      padding: 4px 11px; border-radius: 50px; border: none;
+      font-family: 'Nunito', sans-serif; font-weight: 700; font-size: 0.78rem;
+      cursor: pointer; background: transparent; color: rgba(255,255,255,0.75);
+      transition: all 0.18s;
+    }
+    .lang-btn.active { background: white; color: var(--coral); }
+
+    /* ===== RTL SUPPORT ===== */
+    #app[dir="rtl"] { font-family: 'Nunito', 'DM Sans', sans-serif; }
+    #app[dir="rtl"] .view-header { flex-direction: row-reverse; }
+    #app[dir="rtl"] .view-header h2 { text-align: right; }
+    #app[dir="rtl"] .task-card-header { flex-direction: row-reverse; }
+    #app[dir="rtl"] .task-edit-btns { flex-direction: row-reverse; }
+    #app[dir="rtl"] .task-card-meta { flex-direction: row-reverse; }
+    #app[dir="rtl"] .task-card-actions { flex-direction: row-reverse; }
+    #app[dir="rtl"] .request-card-header { flex-direction: row-reverse; }
+    #app[dir="rtl"] .request-meta { flex-direction: row-reverse; }
+    #app[dir="rtl"] .request-actions { flex-direction: row-reverse; }
+    #app[dir="rtl"] .child-stat-header { flex-direction: row-reverse; }
+    #app[dir="rtl"] .reward-card { flex-direction: row-reverse; }
+    #app[dir="rtl"] .reward-store-header { flex-direction: row-reverse; }
+    #app[dir="rtl"] .child-header-top { flex-direction: row-reverse; }
+    #app[dir="rtl"] .child-header-info { flex-direction: row-reverse; }
+    #app[dir="rtl"] .child-points-row { flex-direction: row-reverse; }
+    #app[dir="rtl"] .milestone-info { text-align: left; }
+    #app[dir="rtl"] .summary-grid { direction: rtl; }
+    #app[dir="rtl"] .tab-nav { direction: rtl; }
+    #app[dir="rtl"] .form-label { text-align: right; display: block; }
+    #app[dir="rtl"] .form-input, #app[dir="rtl"] .form-select, #app[dir="rtl"] .form-textarea { text-align: right; direction: rtl; }
+    #app[dir="rtl"] .modal-header { flex-direction: row-reverse; }
+    #app[dir="rtl"] .redemption-header { flex-direction: row-reverse; }
+    #app[dir="rtl"] .history-entry-top { flex-direction: row-reverse; }
+    #app[dir="rtl"] .parent-header { flex-direction: row-reverse; }
+    #app[dir="rtl"] .time-slot-header { flex-direction: row-reverse; }
+    #app[dir="rtl"] .pending-redemptions-banner { flex-direction: row-reverse; }
+    #app[dir="rtl"] .card-title { text-align: right; }
+    #app[dir="rtl"] .card-desc { text-align: right; }
+    #app[dir="rtl"] .section-title { flex-direction: row-reverse; }
+    #app[dir="rtl"] .choice-grid { direction: rtl; }
+    #app[dir="rtl"] .fab { right: auto; left: max(20px, calc(50vw - 220px)); }
+    @media (min-width: 481px) { #app[dir="rtl"] .fab { left: calc(50vw - 216px); right: auto; } }
+
     /* ===== RESPONSIVE ===== */
     @media (max-width: 400px) {
       .summary-card .s-count { font-size: 1.35rem; }
@@ -879,28 +928,217 @@ function showToast(msg) {
   t._timer = setTimeout(() => t.classList.remove('show'), 2800);
 }
 
-const MOTIVATIONAL = [
-  '🚀 Great job, {name}! Keep it up!',
-  '🔥 You\'re on fire, {name}!',
-  '🌟 Amazing work, {name}!',
-  '⭐ Super star alert — that\'s you, {name}!',
-  '💪 {name}, you\'re crushing it!',
-  '🎉 Fantastic effort, {name}!',
-  '🙌 Keep going, {name}! You\'ve got this!',
-  '✨ Every task counts, {name}!'
-];
+const MOTIVATIONAL = {
+  en: [
+    '🚀 Great job, {name}! Keep it up!',
+    '🔥 You\'re on fire, {name}!',
+    '🌟 Amazing work, {name}!',
+    '⭐ Super star alert — that\'s you, {name}!',
+    '💪 {name}, you\'re crushing it!',
+    '🎉 Fantastic effort, {name}!',
+    '🙌 Keep going, {name}! You\'ve got this!',
+    '✨ Every task counts, {name}!'
+  ],
+  he: [
+    '🚀 !כל הכבוד, {name}! המשך כך',
+    '🔥 !{name}, אתה לוהט',
+    '🌟 !עבודה מדהימה, {name}',
+    '⭐ !כוכב על — זה אתה, {name}',
+    '💪 !{name}, אתה מצליח בגדול',
+    '🎉 !מאמץ נהדר, {name}',
+    '🙌 !המשך הלאה, {name}! אתה מסוגל',
+    '✨ !כל משימה חשובה, {name}'
+  ]
+};
 function getMotivational(name) {
-  return MOTIVATIONAL[Math.floor(Math.random() * MOTIVATIONAL.length)].replace(/{name}/g, name);
+  const phrases = MOTIVATIONAL[_lang] || MOTIVATIONAL.en;
+  return phrases[Math.floor(Math.random() * phrases.length)].replace(/{name}/g, name);
 }
 
 const CAT_EMOJI = { chores: '🧹', homework: '📚', 'self-care': '🛁', other: '✨' };
 const REQ_EMOJI = { outing: '🚗', purchase: '🛒', permission: '🙋', other: '💬' };
-const TIME_OF_DAY = {
-  morning: { label: '🌅 Morning', order: 0 },
-  noon:    { label: '☀️ Noon',    order: 1 },
-  evening: { label: '🌙 Evening', order: 2 },
-  anytime: { label: '✨ Anytime', order: 3 }
+
+/* =====================================================================
+   INTERNATIONALISATION
+===================================================================== */
+const STRINGS = {
+  en: {
+    appTitle:'Family Hub', whoAreYou:'Who are you?', iAmParent:'🔑 I\'m a Parent',
+    parentLogin:'🔑 Parent Login', enterParentPin:'Enter your parent PIN',
+    hiEnterPin:'Hi {name}! Enter your PIN', wrongPin:'❌ Wrong PIN — try again',
+    parentDashboard:'👨‍👩‍👧‍👦 Parent Dashboard', logoutBtn:'Logout →', back:'←',
+    tasksPending:'Tasks Pending', needVerify:'Need Verify', requestsLabel:'Requests',
+    tabTasks:'Tasks', tabRequests:'Requests', tabRewards:'Rewards',
+    tabChildren:'Children', tabSettings:'Settings', tabHistory:'History',
+    noTasksYet:'No tasks yet', tapToAddTask:'Tap + to add your first task',
+    everyone:'Everyone 👨‍👩‍👧‍👦', awaitingVerif:'⏳ Awaiting your verification:',
+    verifyBtn:'✓ Verify', skipBtn:'Skip', verifiedBy:'✅ Verified by:',
+    catChores:'Chores', catHomework:'Homework', catSelfCare:'Self-care', catOther:'Other',
+    recDaily:'📅 Daily', recWeekly:'📆 Weekly', recOneTime:'🎯 One-time',
+    todMorning:'🌅 Morning', todNoon:'☀️ Noon', todEvening:'🌙 Evening', todAnytime:'✨ Anytime',
+    noRequestsYet:'No requests yet', requestsAppear:"Children's requests will appear here",
+    approveBtn:'✓ Approve', rejectBtn:'✗ Reject', confirmReject:'Confirm Reject',
+    replyPlaceholder:'Reply message (optional)...',
+    urgHigh:'high urgency', urgMedium:'medium urgency', urgLow:'low urgency',
+    urgHighBtn:'🔴 High', urgMediumBtn:'🟡 Medium', urgLowBtn:'🟢 Low',
+    noChildrenYet:'No children added', tapToAddChild:'Tap + to add your first child',
+    tasksAssigned:'tasks assigned', verifiedToday:'verified today',
+    editBtn:'✏️ Edit', removeBtn:'🗑️ Remove',
+    familyMotto:'🏠 Family Motto', saveMotto:'Save Motto',
+    changePin:'🔑 Change Parent PIN', newPin4:'New PIN (4 digits)', changePinBtn:'Change PIN',
+    resetTitle:'⚠️ Reset App Data', resetDesc:'Restores demo data. All changes will be lost.', resetBtn:'Reset to Demo',
+    streakTitle:'🔥 Streak Bonus', streakDesc:'Reward children who complete all tasks for several days in a row.',
+    enableStreak:'Enable streak bonus', daysRequired:'Days required', bonusStarsLabel:'Bonus ⭐ awarded',
+    remindersTitle:'🔔 Task Reminders', allowNotif:'🔔 Allow Notifications',
+    remindersActive:'Reminders active', addReminder:'+ Add reminder time',
+    noHistoryYet:'No history yet', historyDesc:'Approvals and verifications will appear here permanently',
+    filterAll:'All', filterTasks:'✅ Tasks', filterRequests:'📬 Requests', filterRewards:'🎁 Rewards', filterStreaks:'🔥 Streaks',
+    storeBtn:'🎁 Store', totalStars:'Total Stars', nextMilestone:'Next milestone',
+    allDoneTitle:'All done for today!', allDoneDesc:"Amazing work! You've completed everything!",
+    noTasksTitle:'No tasks today', noTasksDesc:'Enjoy your free time!',
+    markDone:'✓ Mark Done', awaitingApproval:'⏳ Awaiting approval', verifiedBadge:'✅ Verified!',
+    newRequestTitle:'New Request', whatToAsk:'What do you want to ask? *',
+    reqPlaceholder:'e.g. Trip to the cinema', categoryLabel:'Category',
+    tellUsMore:'Tell us more (optional)', howUrgent:'How urgent? *',
+    sendRequest:'✉️ Send Request to Parents',
+    myRequests:'My Requests', noReqChild:'No requests yet',
+    noReqChildDesc:'Tap the ✉️ button on your home screen to send a request',
+    parentReplied:'💬 Parent replied:',
+    rewardStore:'Reward Store', availableRewards:'🛍️ Available Rewards',
+    myRedemptions:'📜 My Redemption History',
+    contributeBtn:'⭐ Contribute', redeemBtn:'🎁 Redeem',
+    needMoreStars:'Need {n} more ⭐', pendingApproval:'⏳ Pending approval',
+    goalReachedBadge:'🎉 Goal reached! Waiting for parent',
+    familyBadge:'👨‍👩‍👧‍👦 Family',
+    pendingRedemptionsBanner:'{n} reward redemption{s} waiting',
+    pendingRedemptionsTitle:'⏳ Pending Redemptions',
+    rewardCatalog:'🎁 Reward Catalog',
+    newTask:'📋 New Task', editTask:'✏️ Edit Task', addTaskBtn:'Add Task ✓', saveChangesBtn:'Save Changes ✓',
+    newChild:'👧 New Child', editChild:'✏️ Edit Child', addChildBtn:'Add Child ✓',
+    newReward:'🎁 New Reward', editReward:'✏️ Edit Reward', addRewardBtn:'Add Reward ✓',
+    titleField:'Title *', descField:'Description (optional)', catField:'Category',
+    assignField:'Assign to', recField:'Recurrence', pointsField:'Points (1–5 stars)',
+    todField:'Time of day', dueField:'Due time (optional)', duePlaceholder:'e.g. before dinner',
+    childNameField:"Child's name *", childNamePlaceholder:'e.g. Emma',
+    chooseEmoji:'Choose emoji', pinField:'PIN (4 digits) *',
+    rewardTypeField:'Reward Type', individualType:'👤 Individual', groupType:'👨‍👩‍👧‍👦 Family Challenge',
+    iconField:'Icon', rewardNameField:'Reward name *', costField:'Cost in stars *',
+    goalCostField:'Total stars goal (all children combined) *',
+    reqCatOuting:'Outing', reqCatPurchase:'Purchase', reqCatPermission:'Permission', reqCatOther:'Other',
+    goalReachedApprove:'🎉 Goal reached! Ready to approve.',
+    noRewardsYet:'No rewards available', noRewardsParent:'No rewards yet', addRewardsHint:'Tap + to add your first reward for the kids',
+    askParentRewards:'Ask your parents to add rewards to the store',
+    contributeToGoal:'🤝 Contribute to Family Goal',
+    familyGoal:'Family goal:', collectedSoFar:'Collected so far:',
+    yourContrib:'Your contribution (you have {n} ⭐)',
+    confirmContrib:'⭐ Confirm Contribution',
+    noContribYet:'No contributions yet',
+  },
+  he: {
+    appTitle:'Family Hub', whoAreYou:'?מי אתה', iAmParent:'אני הורה 🔑',
+    parentLogin:'כניסת הורה 🔑', enterParentPin:'הכנס את קוד ההורה',
+    hiEnterPin:'!הכנס את הקוד שלך ,{name}', wrongPin:'❌ קוד שגוי — נסה שוב',
+    parentDashboard:'דשבורד הורים 👨‍👩‍👧‍👦', logoutBtn:'יציאה', back:'→',
+    tasksPending:'משימות ממתינות', needVerify:'לאישור', requestsLabel:'בקשות',
+    tabTasks:'משימות', tabRequests:'בקשות', tabRewards:'פרסים',
+    tabChildren:'ילדים', tabSettings:'הגדרות', tabHistory:'היסטוריה',
+    noTasksYet:'אין משימות עדיין', tapToAddTask:'לחץ + להוספת משימה ראשונה',
+    everyone:'כולם 👨‍👩‍👧‍👦', awaitingVerif:':⏳ ממתין לאישורך',
+    verifyBtn:'✓ אשר', skipBtn:'דלג', verifiedBy:':✅ אושר על ידי',
+    catChores:'סדר הבית', catHomework:'שיעורי בית', catSelfCare:'טיפוח עצמי', catOther:'אחר',
+    recDaily:'📅 יומי', recWeekly:'📆 שבועי', recOneTime:'🎯 חד פעמי',
+    todMorning:'🌅 בוקר', todNoon:'☀️ צהריים', todEvening:'🌙 ערב', todAnytime:'✨ בכל עת',
+    noRequestsYet:'אין בקשות עדיין', requestsAppear:'בקשות הילדים יופיעו כאן',
+    approveBtn:'✓ אשר', rejectBtn:'✗ דחה', confirmReject:'אשר דחייה',
+    replyPlaceholder:'הודעת תגובה (אופציונלי)...',
+    urgHigh:'דחיפות גבוהה', urgMedium:'דחיפות בינונית', urgLow:'דחיפות נמוכה',
+    urgHighBtn:'🔴 גבוהה', urgMediumBtn:'🟡 בינונית', urgLowBtn:'🟢 נמוכה',
+    noChildrenYet:'לא נוספו ילדים', tapToAddChild:'לחץ + להוספת הילד הראשון',
+    tasksAssigned:'משימות מוקצות', verifiedToday:'אושרו היום',
+    editBtn:'✏️ ערוך', removeBtn:'🗑️ הסר',
+    familyMotto:'🏠 סיסמת המשפחה', saveMotto:'שמור סיסמה',
+    changePin:'🔑 שינוי קוד הורה', newPin4:'קוד חדש (4 ספרות)', changePinBtn:'שנה קוד',
+    resetTitle:'⚠️ איפוס נתוני האפליקציה', resetDesc:'משחזר נתוני דמו. כל השינויים יאבדו.', resetBtn:'איפוס לדמו',
+    streakTitle:'🔥 בונוס רצף', streakDesc:'תגמל ילדים שמשלימים את כל המשימות מספר ימים ברצף.',
+    enableStreak:'הפעל בונוס רצף', daysRequired:'ימים נדרשים', bonusStarsLabel:'כוכבי בונוס ⭐',
+    remindersTitle:'🔔 תזכורות משימות', allowNotif:'🔔 אפשר התראות',
+    remindersActive:'תזכורות פעילות', addReminder:'+ הוסף שעת תזכורת',
+    noHistoryYet:'אין היסטוריה עדיין', historyDesc:'אישורים ואימותים יופיעו כאן לצמיתות',
+    filterAll:'הכל', filterTasks:'✅ משימות', filterRequests:'📬 בקשות', filterRewards:'🎁 פרסים', filterStreaks:'🔥 רצפים',
+    storeBtn:'🎁 חנות', totalStars:'סה"כ כוכבים', nextMilestone:'יעד הבא',
+    allDoneTitle:'!סיימת הכל להיום', allDoneDesc:'!עבודה מדהימה! סיימת הכל',
+    noTasksTitle:'אין משימות היום', noTasksDesc:'תהנה מזמן חופשי!',
+    markDone:'✓ סיימתי', awaitingApproval:'⏳ ממתין לאישור', verifiedBadge:'✅ אושר!',
+    newRequestTitle:'בקשה חדשה', whatToAsk:'* ?מה אתה רוצה לבקש',
+    reqPlaceholder:'למשל: טיול לקולנוע', categoryLabel:'קטגוריה',
+    tellUsMore:'ספר לנו עוד (אופציונלי)', howUrgent:'* ?כמה דחוף',
+    sendRequest:'✉️ שלח בקשה להורים',
+    myRequests:'הבקשות שלי', noReqChild:'אין בקשות עדיין',
+    noReqChildDesc:'לחץ על כפתור ✉️ במסך הבית כדי לשלוח בקשה',
+    parentReplied:':💬 תגובת ההורה',
+    rewardStore:'חנות הפרסים', availableRewards:'🛍️ פרסים זמינים',
+    myRedemptions:'📜 היסטוריית המימושים שלי',
+    contributeBtn:'⭐ תרום', redeemBtn:'🎁 ממש',
+    needMoreStars:'חסרים עוד {n} ⭐', pendingApproval:'⏳ ממתין לאישור',
+    goalReachedBadge:'🎉 היעד הושג! ממתין להורה',
+    familyBadge:'👨‍👩‍👧‍👦 משפחה',
+    pendingRedemptionsBanner:'מימוש פרסים {n} ממתינים לאישור',
+    pendingRedemptionsTitle:'⏳ מימושים ממתינים',
+    rewardCatalog:'🎁 קטלוג פרסים',
+    newTask:'📋 משימה חדשה', editTask:'✏️ ערוך משימה', addTaskBtn:'הוסף משימה ✓', saveChangesBtn:'שמור שינויים ✓',
+    newChild:'👧 ילד חדש', editChild:'✏️ ערוך ילד', addChildBtn:'הוסף ילד ✓',
+    newReward:'🎁 פרס חדש', editReward:'✏️ ערוך פרס', addRewardBtn:'הוסף פרס ✓',
+    titleField:'* שם', descField:'תיאור (אופציונלי)', catField:'קטגוריה',
+    assignField:'הקצה ל', recField:'תדירות', pointsField:'נקודות (1–5 כוכבים)',
+    todField:'זמן ביום', dueField:'מועד אחרון (אופציונלי)', duePlaceholder:'למשל: לפני ארוחת ערב',
+    childNameField:'* שם הילד', childNamePlaceholder:'למשל: יואב',
+    chooseEmoji:"בחר אמוג'י", pinField:'* קוד (4 ספרות)',
+    rewardTypeField:'סוג פרס', individualType:'👤 אישי', groupType:'👨‍👩‍👧‍👦 אתגר משפחתי',
+    iconField:"אייקון", rewardNameField:'* שם הפרס', costField:'* עלות בכוכבים',
+    goalCostField:'* יעד כוכבים (סה"כ כל הילדים)',
+    reqCatOuting:'טיול', reqCatPurchase:'קנייה', reqCatPermission:'רשות', reqCatOther:'אחר',
+    goalReachedApprove:'.!היעד הושג! מוכן לאישור 🎉',
+    noRewardsYet:'אין פרסים זמינים', noRewardsParent:'אין פרסים עדיין', addRewardsHint:'לחץ + להוספת פרס ראשון לילדים',
+    askParentRewards:'בקש מההורים להוסיף פרסים לחנות',
+    contributeToGoal:'🤝 תרום ליעד המשפחתי',
+    familyGoal:':יעד משפחתי', collectedSoFar:':נאסף עד כה',
+    yourContrib:'התרומה שלך (יש לך {n} ⭐)',
+    confirmContrib:'✓ אשר תרומה ⭐',
+    noContribYet:'אין תרומות עדיין',
+  }
 };
+
+let _lang = localStorage.getItem('familyLang') || 'he';
+
+function t(key) {
+  return (STRINGS[_lang] && STRINGS[_lang][key] != null ? STRINGS[_lang][key] : (STRINGS.en[key] || key));
+}
+
+function setLang(lang) {
+  _lang = lang;
+  localStorage.setItem('familyLang', lang);
+  document.getElementById('app').setAttribute('dir', lang === 'he' ? 'rtl' : 'ltr');
+  const view = Router.currentView;
+  if (view && Views[view]) Views[view].render(Router.params || {});
+  else Router.navigate('home');
+}
+
+function catLabel(cat) {
+  return { chores: t('catChores'), homework: t('catHomework'), 'self-care': t('catSelfCare'), other: t('catOther') }[cat] || cat;
+}
+function reqCatLabel(cat) {
+  return { outing: t('reqCatOuting'), purchase: t('reqCatPurchase'), permission: t('reqCatPermission'), other: t('reqCatOther') }[cat] || cat;
+}
+function urgLabel(urg) {
+  return { high: t('urgHigh'), medium: t('urgMedium'), low: t('urgLow') }[urg] || urg;
+}
+const TIME_OF_DAY = {
+  morning: { labelKey: 'todMorning', order: 0 },
+  noon:    { labelKey: 'todNoon',    order: 1 },
+  evening: { labelKey: 'todEvening', order: 2 },
+  anytime: { labelKey: 'todAnytime', order: 3 }
+};
+function todLabel(slot) { return TIME_OF_DAY[slot] ? t(TIME_OF_DAY[slot].labelKey) : slot; }
 
 /* =====================================================================
    APPROVAL HISTORY
@@ -939,7 +1177,7 @@ function checkStreakForChild(childId) {
     child.currentStreak = 0;
     logHistory('streak', '🔥', `${child.name} completed a ${cfg.requiredDays}-day streak! +${cfg.bonusStars} bonus ⭐`, childId);
     State.save();
-    showToast(`🔥 ${child.name} hit a ${cfg.requiredDays}-day streak! +${cfg.bonusStars} bonus stars!`);
+    showToast(_lang==='he'?`🔥 ${child.name} השיג רצף של ${cfg.requiredDays} ימים! +${cfg.bonusStars} כוכבי בונוס!`:`🔥 ${child.name} hit a ${cfg.requiredDays}-day streak! +${cfg.bonusStars} bonus stars!`);
   } else {
     State.save();
   }
@@ -953,16 +1191,16 @@ let _firedToday = {};
 
 function requestNotifPermission(callback) {
   if (!('Notification' in window)) {
-    showToast('❌ This browser does not support notifications');
+    showToast(_lang==='he'?'❌ דפדפן זה אינו תומך בהתראות':'❌ This browser does not support notifications');
     return;
   }
   Notification.requestPermission().then(perm => {
     State.data.notificationSettings.permission = perm;
     State.save();
     if (callback) callback(perm);
-    if (perm === 'granted') showToast('🔔 Notifications enabled!');
-    else if (perm === 'denied') showToast('❌ Notifications blocked in browser settings');
-    else showToast('Notification permission dismissed');
+    if (perm === 'granted') showToast(_lang==='he'?'🔔 התראות הופעלו!':'🔔 Notifications enabled!');
+    else if (perm === 'denied') showToast(_lang==='he'?'❌ התראות חסומות בהגדרות הדפדפן':'❌ Notifications blocked in browser settings');
+    else showToast(_lang==='he'?'הרשאת התראות בוטלה':'Notification permission dismissed');
     switchTab('settings');
   });
 }
@@ -1302,7 +1540,7 @@ const PinPad = {
       const e = document.getElementById('pin-error');
       if (e) {
         e.style.animation = 'none';
-        e.textContent = '❌ Wrong PIN — try again';
+        e.textContent = t('wrongPin');
         void e.offsetHeight;
         e.style.animation = '';
       }
@@ -1327,17 +1565,21 @@ const Views = {
               <span class="child-emoji">${c.emoji}</span>
               <span class="child-name">${esc(c.name)}</span>
             </button>`).join('')
-        : `<div style="grid-column:1/-1;text-align:center;color:var(--muted);padding:20px 0;font-size:0.9rem;">No children added yet — log in as parent first</div>`;
+        : `<div style="grid-column:1/-1;text-align:center;color:var(--muted);padding:20px 0;font-size:0.9rem;">${_lang==='he'?'לא נוספו ילדים — כנס כהורה תחילה':'No children added yet — log in as parent first'}</div>`;
 
       document.getElementById('view-home').innerHTML = `
-        <div class="home-bg">
+        <div class="home-bg" style="position:relative;">
+          <div class="lang-toggle">
+            <button class="lang-btn${_lang==='he'?' active':''}" onclick="setLang('he')">עב</button>
+            <button class="lang-btn${_lang==='en'?' active':''}" onclick="setLang('en')">EN</button>
+          </div>
           <div class="home-logo">🏠</div>
-          <h1 class="home-title">Family Hub</h1>
+          <h1 class="home-title">${t('appTitle')}</h1>
           <p class="home-motto">${motto}</p>
-          <p class="home-section-label">Who are you?</p>
+          <p class="home-section-label">${t('whoAreYou')}</p>
           <div class="child-btn-grid">${childBtns}</div>
           <button class="btn btn-primary btn-full" style="margin-top:auto;max-width:320px;" onclick="Router.navigate('pin',{role:'parent'})">
-            🔑 I'm a Parent
+            ${t('iAmParent')}
           </button>
         </div>`;
     }
@@ -1348,8 +1590,8 @@ const Views = {
     render(params) {
       const isParent = params.role === 'parent';
       const child = isParent ? null : State.getChild(params.childId);
-      const title = isParent ? '🔑 Parent Login' : (child ? `${child.emoji} ${esc(child.name)}` : 'Login');
-      const subtitle = isParent ? 'Enter your parent PIN' : `Hi ${child ? esc(child.name) : ''}! Enter your PIN`;
+      const title = isParent ? t('parentLogin') : (child ? `${child.emoji} ${esc(child.name)}` : 'Login');
+      const subtitle = isParent ? t('enterParentPin') : t('hiEnterPin').replace('{name}', child ? esc(child.name) : '');
       const theme = isParent ? 'parent' : 'child';
 
       document.getElementById('view-pin').innerHTML = `
@@ -1391,8 +1633,8 @@ const Views = {
 
       document.getElementById('view-parent-dashboard').innerHTML = `
         <div class="parent-header">
-          <h2>👨‍👩‍👧‍👦 Parent Dashboard</h2>
-          <button class="logout-btn" onclick="doLogout()">Logout →</button>
+          <h2>${t('parentDashboard')}</h2>
+          <button class="logout-btn" onclick="doLogout()">${t('logoutBtn')}</button>
         </div>
 
         <div style="padding:14px 0 0;">
@@ -1400,17 +1642,17 @@ const Views = {
             <div class="summary-card">
               <span class="s-icon">📋</span>
               <div class="s-count" style="color:var(--coral);">${summary.pendingCount}</div>
-              <div class="s-label">Tasks Pending</div>
+              <div class="s-label">${t('tasksPending')}</div>
             </div>
             <div class="summary-card">
               <span class="s-icon">⏳</span>
               <div class="s-count" style="color:var(--blue);">${summary.awaitingVerification}</div>
-              <div class="s-label">Need Verify</div>
+              <div class="s-label">${t('needVerify')}</div>
             </div>
             <div class="summary-card">
               <span class="s-icon">📬</span>
               <div class="s-count" style="color:var(--green);">${summary.pendingRequests}</div>
-              <div class="s-label">Requests</div>
+              <div class="s-label">${t('requestsLabel')}</div>
             </div>
           </div>
 
@@ -1422,22 +1664,22 @@ const Views = {
 
           <div class="tab-nav">
             <button class="tab-btn ${tab==='tasks'?'active':''}" onclick="switchTab('tasks')">
-              <span class="tab-icon">📋</span>Tasks
+              <span class="tab-icon">📋</span>${t('tabTasks')}
             </button>
             <button class="tab-btn ${tab==='requests'?'active':''}" onclick="switchTab('requests')">
-              <span class="tab-icon">📬</span>Requests
+              <span class="tab-icon">📬</span>${t('tabRequests')}
             </button>
             <button class="tab-btn ${tab==='rewards'?'active':''}" onclick="switchTab('rewards')">
-              <span class="tab-icon">🎁</span>Rewards${summary.pendingRedemptions > 0 ? `<span style="background:var(--coral);color:white;border-radius:50%;width:14px;height:14px;font-size:0.55rem;display:inline-flex;align-items:center;justify-content:center;margin-left:2px;">${summary.pendingRedemptions}</span>` : ''}
+              <span class="tab-icon">🎁</span>${t('tabRewards')}${summary.pendingRedemptions > 0 ? `<span style="background:var(--coral);color:white;border-radius:50%;width:14px;height:14px;font-size:0.55rem;display:inline-flex;align-items:center;justify-content:center;margin-left:2px;">${summary.pendingRedemptions}</span>` : ''}
             </button>
             <button class="tab-btn ${tab==='children'?'active':''}" onclick="switchTab('children')">
-              <span class="tab-icon">👧</span>Children
+              <span class="tab-icon">👧</span>${t('tabChildren')}
             </button>
             <button class="tab-btn ${tab==='settings'?'active':''}" onclick="switchTab('settings')">
-              <span class="tab-icon">⚙️</span>Settings
+              <span class="tab-icon">⚙️</span>${t('tabSettings')}
             </button>
             <button class="tab-btn ${tab==='history'?'active':''}" onclick="switchTab('history')">
-              <span class="tab-icon">📜</span>History
+              <span class="tab-icon">📜</span>${t('tabHistory')}
             </button>
           </div>
 
@@ -1462,16 +1704,16 @@ const Views = {
         <div class="section-pad">
           <div class="empty-state">
             <span class="empty-emoji">📋</span>
-            <h3>No tasks yet</h3>
-            <p>Tap + to add your first task</p>
+            <h3>${t('noTasksYet')}</h3>
+            <p>${t('tapToAddTask')}</p>
           </div>
         </div>
         <button class="fab" onclick="openAddTask()">+</button>`;
 
       const cards = tasks.map(task => {
         const assigneeName = task.assignedTo === 'all'
-          ? 'Everyone 👨‍👩‍👧‍👦'
-          : esc((State.getChild(task.assignedTo) || {}).name || 'Unknown');
+          ? t('everyone')
+          : esc((State.getChild(task.assignedTo) || {}).name || '?');
         const periodKey = task.recurrence === 'weekly' ? weekStr : todayStr;
         const awaitingComps = State.data.taskCompletions.filter(
           c => c.taskId === task.id && c.date === periodKey && c.status === 'done-awaiting'
@@ -1489,26 +1731,26 @@ const Views = {
               ${task.description ? `<div class="task-card-sub">${esc(task.description)}</div>` : ''}
             </div>
             <div class="task-edit-btns">
-              <button class="icon-btn" onclick="openEditTask('${task.id}')" title="Edit">✏️</button>
-              <button class="icon-btn" onclick="doDeleteTask('${task.id}')" title="Delete">🗑️</button>
+              <button class="icon-btn" onclick="openEditTask('${task.id}')" title="${t('editBtn')}">✏️</button>
+              <button class="icon-btn" onclick="doDeleteTask('${task.id}')" title="${t('removeBtn')}">🗑️</button>
             </div>
           </div>
           <div class="task-card-meta">
-            <span class="badge badge-${task.category}">${task.category}</span>
-            <span class="badge badge-${task.recurrence}">${task.recurrence}</span>
+            <span class="badge badge-${task.category}">${catLabel(task.category)}</span>
+            <span class="badge badge-${task.recurrence}">${{daily:t('recDaily'),weekly:t('recWeekly'),'one-time':t('recOneTime')}[task.recurrence]||task.recurrence}</span>
             <span style="font-size:0.78rem;color:var(--muted);">👤 ${assigneeName}</span>
             ${starsHTML(task.points)}
           </div>
-          ${verifiedComps.length ? `<div style="margin-top:8px;font-size:0.78rem;color:var(--green);">✅ Verified by: ${verifiedComps.map(c=>{const ch=State.getChild(c.childId);return ch?ch.emoji+' '+esc(ch.name):'?';}).join(', ')}</div>` : ''}
+          ${verifiedComps.length ? `<div style="margin-top:8px;font-size:0.78rem;color:var(--green);">${t('verifiedBy')} ${verifiedComps.map(c=>{const ch=State.getChild(c.childId);return ch?ch.emoji+' '+esc(ch.name):'?';}).join(', ')}</div>` : ''}
           ${awaitingComps.length ? `
             <div style="margin-top:10px;">
-              <div style="font-size:0.78rem;font-weight:600;color:var(--blue);margin-bottom:7px;">⏳ Awaiting your verification:</div>
+              <div style="font-size:0.78rem;font-weight:600;color:var(--blue);margin-bottom:7px;">${t('awaitingVerif')}</div>
               ${awaitingComps.map(comp => {
                 const ch = State.getChild(comp.childId);
                 return `<div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;">
                   <span style="font-size:0.88rem;">${ch ? ch.emoji+' '+esc(ch.name) : '?'}</span>
-                  <button class="btn btn-success btn-sm" onclick="doVerifyTask('${comp.id}')">✓ Verify</button>
-                  <button class="btn btn-ghost btn-sm" onclick="doSkipTask('${comp.id}')">Skip</button>
+                  <button class="btn btn-success btn-sm" onclick="doVerifyTask('${comp.id}')">${t('verifyBtn')}</button>
+                  <button class="btn btn-ghost btn-sm" onclick="doSkipTask('${comp.id}')">${t('skipBtn')}</button>
                 </div>`;
               }).join('')}
             </div>` : ''}
@@ -1531,8 +1773,8 @@ const Views = {
         <div class="section-pad">
           <div class="empty-state">
             <span class="empty-emoji">📬</span>
-            <h3>No requests yet</h3>
-            <p>Children's requests will appear here</p>
+            <h3>${t('noRequestsYet')}</h3>
+            <p>${t('requestsAppear')}</p>
           </div>
         </div>`;
 
@@ -1546,20 +1788,20 @@ const Views = {
           </div>
           <div class="request-meta">
             <span class="request-child-tag">${child ? child.emoji+' '+esc(child.name) : '?'}</span>
-            <span class="badge badge-${req.urgency}">${req.urgency} urgency</span>
+            <span class="badge badge-${req.urgency}">${urgLabel(req.urgency)}</span>
             <span class="badge badge-${req.status}">${req.status}</span>
             <span style="font-size:0.72rem;color:var(--muted);">${formatDate(req.createdAt)}</span>
           </div>
           ${req.description ? `<div class="request-desc">${esc(req.description)}</div>` : ''}
-          ${req.reply ? `<div class="reply-bubble ${req.status}">💬 Reply: ${esc(req.reply)}</div>` : ''}
+          ${req.reply ? `<div class="reply-bubble ${req.status}">💬 ${esc(req.reply)}</div>` : ''}
           ${isPending ? `
             <div class="request-actions">
-              <button class="btn btn-success btn-sm" onclick="doApproveRequest('${req.id}')">✓ Approve</button>
-              <button class="btn btn-danger btn-sm" onclick="showRejectArea('${req.id}')">✗ Reject</button>
+              <button class="btn btn-success btn-sm" onclick="doApproveRequest('${req.id}')">${t('approveBtn')}</button>
+              <button class="btn btn-danger btn-sm" onclick="showRejectArea('${req.id}')">${t('rejectBtn')}</button>
             </div>
             <div class="reply-area" id="ra-${req.id}">
-              <textarea class="form-textarea" id="rt-${req.id}" placeholder="Reply message (optional)..." style="margin:8px 0;min-height:60px;"></textarea>
-              <button class="btn btn-danger btn-sm" onclick="doRejectRequest('${req.id}')">Confirm Reject</button>
+              <textarea class="form-textarea" id="rt-${req.id}" placeholder="${t('replyPlaceholder')}" style="margin:8px 0;min-height:60px;"></textarea>
+              <button class="btn btn-danger btn-sm" onclick="doRejectRequest('${req.id}')">${t('confirmReject')}</button>
             </div>` : ''}
         </div>`;
       }).join('')}</div>`;
@@ -1572,8 +1814,8 @@ const Views = {
         <div class="section-pad">
           <div class="empty-state">
             <span class="empty-emoji">👧</span>
-            <h3>No children added</h3>
-            <p>Tap + to add your first child</p>
+            <h3>${t('noChildrenYet')}</h3>
+            <p>${t('tapToAddChild')}</p>
           </div>
         </div>
         <button class="fab" onclick="openAddChild()">+</button>`;
@@ -1592,11 +1834,11 @@ const Views = {
               <div class="child-stat-points">⭐ ${child.totalPoints}</div>
             </div>
             <div style="font-size:0.8rem;color:var(--muted);margin-bottom:10px;">
-              ${totalTasks} tasks assigned &nbsp;·&nbsp; ${verifiedToday} verified today
+              ${totalTasks} ${t('tasksAssigned')} &nbsp;·&nbsp; ${verifiedToday} ${t('verifiedToday')}
             </div>
             <div class="task-card-actions">
-              <button class="btn btn-ghost btn-sm" onclick="openEditChild('${child.id}')">✏️ Edit</button>
-              <button class="btn btn-danger btn-sm" onclick="doRemoveChild('${child.id}')">🗑️ Remove</button>
+              <button class="btn btn-ghost btn-sm" onclick="openEditChild('${child.id}')">${t('editBtn')}</button>
+              <button class="btn btn-danger btn-sm" onclick="doRemoveChild('${child.id}')">${t('removeBtn')}</button>
             </div>
           </div>`;
         }).join('')}
@@ -1610,7 +1852,7 @@ const Views = {
       const redemptions = (State.data.redemptions || []).filter(r => r.status === 'pending');
 
       const redemptionCards = redemptions.length ? `
-        <div class="section-title" style="margin-bottom:8px;">⏳ Pending Redemptions</div>
+        <div class="section-title" style="margin-bottom:8px;">${t('pendingRedemptionsTitle')}</div>
         ${redemptions.map(rd => {
           const child = State.getChild(rd.childId);
           const reward = (State.data.rewards||[]).find(r => r.id === rd.rewardId);
@@ -1618,14 +1860,14 @@ const Views = {
             <div class="redemption-header">
               <span style="font-size:1.5rem;">${reward ? reward.icon : '🎁'}</span>
               <div style="flex:1">
-                <div style="font-family:'Nunito',sans-serif;font-weight:700;font-size:0.92rem;">${reward ? esc(reward.title) : 'Unknown reward'}</div>
+                <div style="font-family:'Nunito',sans-serif;font-weight:700;font-size:0.92rem;">${reward ? esc(reward.title) : (_lang==='he'?'פרס לא ידוע':'Unknown reward')}</div>
                 <div style="font-size:0.78rem;color:var(--muted);">${child ? child.emoji+' '+esc(child.name) : '?'} &nbsp;·&nbsp; ${formatDate(rd.createdAt)}</div>
               </div>
               <div class="reward-cost-tag">⭐ ${reward ? reward.cost : '?'}</div>
             </div>
             <div style="display:flex;gap:7px;margin-top:6px;">
-              <button class="btn btn-success btn-sm" onclick="doApproveRedemption('${rd.id}')">✓ Approve</button>
-              <button class="btn btn-danger btn-sm" onclick="doRejectRedemption('${rd.id}')">✗ Reject</button>
+              <button class="btn btn-success btn-sm" onclick="doApproveRedemption('${rd.id}')">${t('approveBtn')}</button>
+              <button class="btn btn-danger btn-sm" onclick="doRejectRedemption('${rd.id}')">${t('rejectBtn')}</button>
             </div>
           </div>`;
         }).join('')}
@@ -1633,9 +1875,9 @@ const Views = {
 
       const rewardCards = rewards.length ? rewards.map(rw => {
         const editBtns = `<div style="display:flex;gap:4px;margin-top:6px;justify-content:flex-end;">
-          <button class="icon-btn" onclick="doToggleReward('${rw.id}')" title="${rw.isActive?'Deactivate':'Activate'}">${rw.isActive?'👁️':'🚫'}</button>
-          <button class="icon-btn" onclick="openEditReward('${rw.id}')" title="Edit">✏️</button>
-          <button class="icon-btn" onclick="doDeleteReward('${rw.id}')" title="Delete">🗑️</button>
+          <button class="icon-btn" onclick="doToggleReward('${rw.id}')" title="${rw.isActive?(_lang==='he'?'בטל הפעלה':'Deactivate'):(_lang==='he'?'הפעל':'Activate')}">${rw.isActive?'👁️':'🚫'}</button>
+          <button class="icon-btn" onclick="openEditReward('${rw.id}')" title="${t('editBtn')}">✏️</button>
+          <button class="icon-btn" onclick="doDeleteReward('${rw.id}')" title="${t('removeBtn')}">🗑️</button>
         </div>`;
         if (rw.isGroup) {
           const prog = State.getGroupProgress(rw.id);
@@ -1651,7 +1893,7 @@ const Views = {
               <div class="reward-info">
                 <div style="display:flex;align-items:center;gap:5px;">
                   <div class="reward-title">${esc(rw.title)}</div>
-                  <span style="background:linear-gradient(135deg,var(--teal),var(--blue));color:white;border-radius:50px;padding:2px 8px;font-size:0.68rem;font-family:'Nunito',sans-serif;font-weight:700;">👨‍👩‍👧‍👦 Family</span>
+                  <span style="background:linear-gradient(135deg,var(--teal),var(--blue));color:white;border-radius:50px;padding:2px 8px;font-size:0.68rem;font-family:'Nunito',sans-serif;font-weight:700;">${t('familyBadge')}</span>
                 </div>
                 ${rw.description ? `<div class="reward-desc">${esc(rw.description)}</div>` : ''}
               </div>
@@ -1659,7 +1901,7 @@ const Views = {
             </div>
             <div>
               <div style="display:flex;justify-content:space-between;font-size:0.78rem;margin-bottom:5px;">
-                <span style="color:var(--muted);">${prog.contributions.length ? contribLines : 'No contributions yet'}</span>
+                <span style="color:var(--muted);">${prog.contributions.length ? contribLines : t('noContribYet')}</span>
                 <span style="font-family:'Nunito',sans-serif;font-weight:700;color:${goalMet?'#D97706':'var(--text)'};">${prog.total} / ${rw.cost} ⭐</span>
               </div>
               <div class="progress-wrap">
@@ -1668,10 +1910,10 @@ const Views = {
             </div>
             ${goalMet ? `
               <div style="display:flex;align-items:center;justify-content:space-between;background:#FEF3C7;border-radius:10px;padding:8px 12px;">
-                <span style="font-size:0.85rem;font-weight:600;">🎉 Goal reached! Ready to approve.</span>
+                <span style="font-size:0.85rem;font-weight:600;">${t('goalReachedApprove')}</span>
                 <div style="display:flex;gap:6px;">
-                  <button class="btn btn-success btn-sm" onclick="doApproveGroupReward('${prog.rdId}')">✓ Approve</button>
-                  <button class="btn btn-danger btn-sm" onclick="doRejectGroupReward('${prog.rdId}')">✗ Cancel</button>
+                  <button class="btn btn-success btn-sm" onclick="doApproveGroupReward('${prog.rdId}')">${t('approveBtn')}</button>
+                  <button class="btn btn-danger btn-sm" onclick="doRejectGroupReward('${prog.rdId}')">${t('rejectBtn')}</button>
                 </div>
               </div>` : ''}
             ${editBtns}
@@ -1686,7 +1928,7 @@ const Views = {
           <div style="display:flex;flex-direction:column;align-items:flex-end;gap:6px;flex-shrink:0;">
             <div class="reward-cost-tag">⭐ ${rw.cost}</div>
             <div style="display:flex;gap:4px;">
-              <button class="icon-btn" onclick="doToggleReward('${rw.id}')" title="${rw.isActive?'Deactivate':'Activate'}">${rw.isActive?'👁️':'🚫'}</button>
+              <button class="icon-btn" onclick="doToggleReward('${rw.id}')" title="${rw.isActive?(_lang==='he'?'בטל הפעלה':'Deactivate'):(_lang==='he'?'הפעל':'Activate')}">${rw.isActive?'👁️':'🚫'}</button>
               <button class="icon-btn" onclick="openEditReward('${rw.id}')" title="Edit">✏️</button>
               <button class="icon-btn" onclick="doDeleteReward('${rw.id}')" title="Delete">🗑️</button>
             </div>
@@ -1695,13 +1937,13 @@ const Views = {
       }).join('') : `
         <div class="empty-state">
           <span class="empty-emoji">🎁</span>
-          <h3>No rewards yet</h3>
-          <p>Tap + to add your first reward for the kids</p>
+          <h3>${t('noRewardsParent')}</h3>
+          <p>${t('addRewardsHint')}</p>
         </div>`;
 
       return `<div class="section-pad">
         ${redemptionCards}
-        <div class="section-title">🎁 Reward Catalog</div>
+        <div class="section-title">${t('rewardCatalog')}</div>
         ${rewardCards}
         <div class="spacer80"></div>
       </div>
@@ -1716,7 +1958,7 @@ const Views = {
 
       const reminderRows = (ns.reminders || []).map(rem => `
         <div style="display:flex;align-items:center;gap:8px;margin-bottom:7px;" id="rem-row-${rem.id}">
-          <input type="text" class="form-input" value="${esc(rem.label)}" id="rem-lbl-${rem.id}" placeholder="e.g. Morning tasks" style="flex:1;font-size:0.85rem;padding:7px 10px;">
+          <input type="text" class="form-input" value="${esc(rem.label)}" id="rem-lbl-${rem.id}" placeholder="${_lang==='he'?'למשל: משימות בוקר':'e.g. Morning tasks'}" style="flex:1;font-size:0.85rem;padding:7px 10px;">
           <input type="number" class="form-input" value="${rem.hour}" id="rem-hr-${rem.id}" min="0" max="23" style="width:56px;text-align:center;font-size:0.85rem;padding:7px 6px;">
           <span style="font-size:0.88rem;color:var(--muted);">:</span>
           <input type="number" class="form-input" value="${String(rem.minute).padStart(2,'0')}" id="rem-min-${rem.id}" min="0" max="59" style="width:56px;text-align:center;font-size:0.85rem;padding:7px 6px;">
@@ -1729,46 +1971,46 @@ const Views = {
 
       return `<div class="section-pad" style="padding-top:4px;">
         <div class="card">
-          <div class="card-title" style="margin-bottom:12px;">🏠 Family Motto</div>
+          <div class="card-title" style="margin-bottom:12px;">${t('familyMotto')}</div>
           <div class="form-group" style="margin-bottom:10px;">
-            <input type="text" class="form-input" id="set-motto" value="${esc(State.data.familyMotto||'')}" placeholder="Enter your family motto...">
+            <input type="text" class="form-input" id="set-motto" value="${esc(State.data.familyMotto||'')}" placeholder="...">
           </div>
-          <button class="btn btn-primary btn-sm" onclick="doSaveMotto()">Save Motto</button>
+          <button class="btn btn-primary btn-sm" onclick="doSaveMotto()">${t('saveMotto')}</button>
         </div>
 
         <div class="card">
-          <div class="card-title" style="margin-bottom:12px;">🔑 Change Parent PIN</div>
+          <div class="card-title" style="margin-bottom:12px;">${t('changePin')}</div>
           <div class="form-group" style="margin-bottom:10px;">
-            <label class="form-label">New PIN (4 digits)</label>
+            <label class="form-label">${t('newPin4')}</label>
             <input type="tel" class="form-input" id="set-pin" placeholder="e.g. 5678" maxlength="4" pattern="[0-9]{4}" inputmode="numeric">
-            <span class="form-error" id="set-pin-error">PIN must be exactly 4 digits</span>
+            <span class="form-error" id="set-pin-error">${_lang==='he'?'הקוד חייב להיות בדיוק 4 ספרות':'PIN must be exactly 4 digits'}</span>
           </div>
-          <button class="btn btn-primary btn-sm" onclick="doSaveParentPin()">Change PIN</button>
+          <button class="btn btn-primary btn-sm" onclick="doSaveParentPin()">${t('changePinBtn')}</button>
         </div>
 
         <div class="card" style="border:1.5px solid #FFD166;">
-          <div class="card-title" style="margin-bottom:4px;">🔥 Streak Bonus</div>
-          <div class="card-desc" style="margin-bottom:12px;">Reward children who complete all their tasks for several days in a row.</div>
+          <div class="card-title" style="margin-bottom:4px;">${t('streakTitle')}</div>
+          <div class="card-desc" style="margin-bottom:12px;">${t('streakDesc')}</div>
           <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
-            <span style="font-family:'Nunito',sans-serif;font-weight:700;font-size:0.88rem;">Enable streak bonus</span>
+            <span style="font-family:'Nunito',sans-serif;font-weight:700;font-size:0.88rem;">${t('enableStreak')}</span>
             <label style="display:flex;align-items:center;gap:6px;cursor:pointer;">
               <input type="checkbox" id="streak-enabled" ${sc.enabled?'checked':''} onchange="doSaveStreakConfig()" style="width:18px;height:18px;cursor:pointer;">
             </label>
           </div>
           <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
             <div>
-              <label class="form-label">Days required</label>
+              <label class="form-label">${t('daysRequired')}</label>
               <input type="number" class="form-input" id="streak-days" value="${sc.requiredDays||7}" min="2" max="30" onchange="doSaveStreakConfig()" style="text-align:center;font-family:'Nunito',sans-serif;font-weight:800;font-size:1.1rem;">
             </div>
             <div>
-              <label class="form-label">Bonus ⭐ awarded</label>
+              <label class="form-label">${t('bonusStarsLabel')}</label>
               <input type="number" class="form-input" id="streak-bonus" value="${sc.bonusStars||5}" min="1" max="100" onchange="doSaveStreakConfig()" style="text-align:center;font-family:'Nunito',sans-serif;font-weight:800;font-size:1.1rem;">
             </div>
           </div>
         </div>
 
         <div class="card" style="border:1.5px solid ${notifPerm==='granted'?'var(--green)':'var(--border)'};">
-          <div class="card-title" style="margin-bottom:4px;">🔔 Task Reminders</div>
+          <div class="card-title" style="margin-bottom:4px;">${t('remindersTitle')}</div>
           <div class="card-desc" style="margin-bottom:10px;">
             ${notifSupported
               ? notifPerm === 'granted'
@@ -1779,22 +2021,22 @@ const Views = {
               : '⚠️ This browser does not support notifications.'}
           </div>
           ${notifPerm !== 'granted' && notifSupported && notifPerm !== 'denied' ? `
-          <button class="btn btn-primary btn-sm" style="margin-bottom:12px;" onclick="requestNotifPermission()">🔔 Allow Notifications</button>` : ''}
+          <button class="btn btn-primary btn-sm" style="margin-bottom:12px;" onclick="requestNotifPermission()">${t('allowNotif')}</button>` : ''}
           ${notifPerm === 'granted' ? `
           <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
-            <span style="font-family:'Nunito',sans-serif;font-weight:700;font-size:0.88rem;">Reminders active</span>
+            <span style="font-family:'Nunito',sans-serif;font-weight:700;font-size:0.88rem;">${t('remindersActive')}</span>
             <label style="display:flex;align-items:center;gap:6px;cursor:pointer;">
               <input type="checkbox" id="notif-enabled" ${ns.enabled?'checked':''} onchange="doToggleNotif()" style="width:18px;height:18px;cursor:pointer;">
             </label>
           </div>
           <div id="reminder-rows">${reminderRows}</div>
-          <button class="btn btn-ghost btn-sm" style="margin-top:6px;" onclick="doAddReminder()">+ Add reminder time</button>` : ''}
+          <button class="btn btn-ghost btn-sm" style="margin-top:6px;" onclick="doAddReminder()">${t('addReminder')}</button>` : ''}
         </div>
 
         <div class="card" style="background:linear-gradient(135deg,#FFF5F5,#FFF9F5);border:1px solid #FEE2E2;">
-          <div class="card-title" style="color:var(--coral);margin-bottom:5px;">⚠️ Reset App Data</div>
-          <div class="card-desc" style="margin-bottom:12px;">Restores demo data. All changes will be lost.</div>
-          <button class="btn btn-danger btn-sm" onclick="doResetApp()">Reset to Demo</button>
+          <div class="card-title" style="color:var(--coral);margin-bottom:5px;">${t('resetTitle')}</div>
+          <div class="card-desc" style="margin-bottom:12px;">${t('resetDesc')}</div>
+          <button class="btn btn-danger btn-sm" onclick="doResetApp()">${t('resetBtn')}</button>
         </div>
       </div>`;
     },
@@ -1805,11 +2047,11 @@ const Views = {
 
       const filterBtns = `
         <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px;">
-          <button class="btn btn-ghost btn-sm" id="hf-all"     onclick="filterHistory('all')"    style="font-size:0.78rem;">All</button>
-          <button class="btn btn-ghost btn-sm" id="hf-task"    onclick="filterHistory('task')"   style="font-size:0.78rem;">✅ Tasks</button>
-          <button class="btn btn-ghost btn-sm" id="hf-request" onclick="filterHistory('request')" style="font-size:0.78rem;">📬 Requests</button>
-          <button class="btn btn-ghost btn-sm" id="hf-reward"  onclick="filterHistory('reward')" style="font-size:0.78rem;">🎁 Rewards</button>
-          <button class="btn btn-ghost btn-sm" id="hf-streak"  onclick="filterHistory('streak')" style="font-size:0.78rem;">🔥 Streaks</button>
+          <button class="btn btn-ghost btn-sm" id="hf-all"     onclick="filterHistory('all')"     style="font-size:0.78rem;">${t('filterAll')}</button>
+          <button class="btn btn-ghost btn-sm" id="hf-task"    onclick="filterHistory('task')"    style="font-size:0.78rem;">${t('filterTasks')}</button>
+          <button class="btn btn-ghost btn-sm" id="hf-request" onclick="filterHistory('request')" style="font-size:0.78rem;">${t('filterRequests')}</button>
+          <button class="btn btn-ghost btn-sm" id="hf-reward"  onclick="filterHistory('reward')"  style="font-size:0.78rem;">${t('filterRewards')}</button>
+          <button class="btn btn-ghost btn-sm" id="hf-streak"  onclick="filterHistory('streak')"  style="font-size:0.78rem;">${t('filterStreaks')}</button>
         </div>`;
 
       if (!hist.length) return `
@@ -1817,8 +2059,8 @@ const Views = {
           ${filterBtns}
           <div class="empty-state">
             <span class="empty-emoji">📜</span>
-            <h3>No history yet</h3>
-            <p>Approvals and verifications will appear here permanently</p>
+            <h3>${t('noHistoryYet')}</h3>
+            <p>${t('historyDesc')}</p>
           </div>
         </div>`;
 
@@ -1877,12 +2119,12 @@ const Views = {
           </div>
           <div class="task-card-meta">
             <span class="badge badge-${task.category}">${task.category}</span>
-            ${isVerified ? '<span class="badge badge-verified">✅ Verified!</span>' : ''}
-            ${isAwaiting ? '<span class="badge badge-done-awaiting">⏳ Awaiting approval</span>' : ''}
+            ${isVerified ? `<span class="badge badge-verified">${t('verifiedBadge')}</span>` : ''}
+            ${isAwaiting ? `<span class="badge badge-done-awaiting">${t('awaitingApproval')}</span>` : ''}
           </div>
           ${comp.status === 'pending' ? `
             <div class="task-card-actions">
-              <button class="btn btn-child btn-sm" onclick="doMarkTaskDone('${comp.id}','${child.id}')">✓ Mark Done</button>
+              <button class="btn btn-child btn-sm" onclick="doMarkTaskDone('${comp.id}','${child.id}')">${t('markDone')}</button>
             </div>` : ''}
         </div>`;
       }
@@ -1899,7 +2141,7 @@ const Views = {
       let taskCards = '';
       slotOrder.forEach(slot => {
         if (!grouped[slot].length) return;
-        taskCards += `<div class="time-slot-header">${TIME_OF_DAY[slot].label}</div>`;
+        taskCards += `<div class="time-slot-header">${t('tod'+slot.charAt(0).toUpperCase()+slot.slice(1))}</div>`;
         taskCards += grouped[slot].map(({ task, comp }) => renderTaskCard(task, comp)).join('');
       });
 
@@ -1911,11 +2153,11 @@ const Views = {
       document.getElementById('view-child-home').innerHTML = `
         <div class="child-header">
           <div class="child-header-top">
-            <button onclick="doLogout()" class="logout-btn" style="background:rgba(255,255,255,0.2);border:none;color:white;">← Back</button>
+            <button onclick="doLogout()" class="logout-btn" style="background:rgba(255,255,255,0.2);border:none;color:white;">${t('back')}</button>
             <div style="display:flex;gap:6px;">
               <button onclick="Router.navigate('child-rewards',{childId:'${child.id}'})"
                 class="logout-btn" style="background:rgba(255,255,255,0.2);border:none;color:white;">
-                🎁 Store
+                ${t('storeBtn')}
               </button>
               <button onclick="Router.navigate('child-request-history',{childId:'${child.id}'})"
                 class="logout-btn" style="background:rgba(255,255,255,0.2);border:none;color:white;">
@@ -1933,11 +2175,11 @@ const Views = {
           <div class="child-points-card">
             <div class="child-points-row">
               <div>
-                <div class="points-label">Total Stars</div>
+                <div class="points-label">${t('totalStars')}</div>
                 <div class="points-big" id="pts-${child.id}">⭐ <span id="pts-num-${child.id}">${child.totalPoints}</span></div>
               </div>
               <div class="milestone-info">
-                <div class="points-label">Next milestone</div>
+                <div class="points-label">${t('nextMilestone')}</div>
                 <div class="milestone-val">${nextMilestone} ⭐</div>
               </div>
             </div>
@@ -1952,13 +2194,13 @@ const Views = {
           ${allVerified ? `
             <div class="empty-state">
               <span class="empty-emoji">🎉</span>
-              <h3>All done for today!</h3>
-              <p>Amazing work! You've completed everything!</p>
+              <h3>${t('allDoneTitle')}</h3>
+              <p>${t('allDoneDesc')}</p>
             </div>` : tasks.length === 0 ? `
             <div class="empty-state">
               <span class="empty-emoji">😊</span>
-              <h3>No tasks today</h3>
-              <p>Enjoy your free time!</p>
+              <h3>${t('noTasksTitle')}</h3>
+              <p>${t('noTasksDesc')}</p>
             </div>` : taskCards}
         </div>
 
@@ -1972,47 +2214,49 @@ const Views = {
       const child = State.getChild(params.childId);
       if (!child) { Router.navigate('home'); return; }
 
+      const REQ_CATS = ['outing','purchase','permission','other'];
+      const REQ_CAT_LABELS = { outing: t('reqCatOuting'), purchase: t('reqCatPurchase'), permission: t('reqCatPermission'), other: t('reqCatOther') };
       document.getElementById('view-child-request-form').innerHTML = `
         <div class="view-header">
-          <button class="btn-back" onclick="Router.back()">←</button>
-          <h2>${child.emoji} New Request</h2>
+          <button class="btn-back" onclick="Router.back()">${t('back')}</button>
+          <h2>${child.emoji} ${t('newRequestTitle')}</h2>
         </div>
         <div style="padding:16px 16px 80px;">
           <div class="form-group">
-            <label class="form-label">What do you want to ask? *</label>
-            <input type="text" class="form-input" id="rq-title" placeholder="e.g. Trip to the cinema">
-            <span class="form-error" id="rq-title-err">Please enter a title</span>
+            <label class="form-label">${t('whatToAsk')}</label>
+            <input type="text" class="form-input" id="rq-title" placeholder="${t('reqPlaceholder')}">
+            <span class="form-error" id="rq-title-err">${_lang==='he'?'נא להזין כותרת':'Please enter a title'}</span>
           </div>
 
           <div class="form-group">
-            <label class="form-label">Category</label>
+            <label class="form-label">${t('categoryLabel')}</label>
             <div class="choice-grid choice-grid-2" id="rq-cat-grid">
-              ${['outing','purchase','permission','other'].map(cat => `
+              ${REQ_CATS.map(cat => `
                 <button type="button" class="choice-btn" id="rqc-${cat}" onclick="selectReqCat('${cat}')">
-                  ${REQ_EMOJI[cat]} ${cat.charAt(0).toUpperCase()+cat.slice(1)}
+                  ${REQ_EMOJI[cat]} ${REQ_CAT_LABELS[cat]}
                 </button>`).join('')}
             </div>
             <input type="hidden" id="rq-category" value="other">
           </div>
 
           <div class="form-group">
-            <label class="form-label">Tell us more (optional)</label>
-            <textarea class="form-textarea" id="rq-desc" placeholder="Add any details that might help..."></textarea>
+            <label class="form-label">${t('tellUsMore')}</label>
+            <textarea class="form-textarea" id="rq-desc" placeholder="..."></textarea>
           </div>
 
           <div class="form-group">
-            <label class="form-label">How urgent? *</label>
+            <label class="form-label">${t('howUrgent')}</label>
             <div class="choice-grid choice-grid-3">
-              <button type="button" class="choice-btn" id="rqu-low"    onclick="selectReqUrg('low')">🟢 Low</button>
-              <button type="button" class="choice-btn" id="rqu-medium" onclick="selectReqUrg('medium')">🟡 Medium</button>
-              <button type="button" class="choice-btn" id="rqu-high"   onclick="selectReqUrg('high')">🔴 High</button>
+              <button type="button" class="choice-btn" id="rqu-low"    onclick="selectReqUrg('low')">${t('urgLowBtn')}</button>
+              <button type="button" class="choice-btn" id="rqu-medium" onclick="selectReqUrg('medium')">${t('urgMediumBtn')}</button>
+              <button type="button" class="choice-btn" id="rqu-high"   onclick="selectReqUrg('high')">${t('urgHighBtn')}</button>
             </div>
             <input type="hidden" id="rq-urgency" value="">
-            <span class="form-error" id="rq-urg-err">Please select urgency</span>
+            <span class="form-error" id="rq-urg-err">${_lang==='he'?'נא לבחור דחיפות':'Please select urgency'}</span>
           </div>
 
           <button class="btn btn-child btn-full" style="margin-top:6px;" onclick="doSubmitRequest('${params.childId}')">
-            ✉️ Send Request to Parents
+            ${t('sendRequest')}
           </button>
         </div>`;
 
@@ -2063,11 +2307,11 @@ const Views = {
               </div>
             </div>
             <div class="reward-store-footer" style="margin-top:8px;">
-              <div class="reward-cost-tag">Goal: ${rw.cost} ⭐</div>
+              <div class="reward-cost-tag">${_lang==='he'?'יעד':'Goal'}: ${rw.cost} ⭐</div>
               ${goalMet
-                ? `<span class="badge badge-done-awaiting">🎉 Goal reached! Waiting for parent</span>`
+                ? `<span class="badge badge-done-awaiting">${t('goalReachedBadge')}</span>`
                 : `<button class="btn btn-child btn-sm" onclick="openContributeModal('${rw.id}','${child.id}')">
-                    ${myContrib ? `✏️ Change (${myContrib.amount} ⭐)` : '⭐ Contribute'}
+                    ${myContrib ? `✏️ (${myContrib.amount} ⭐)` : t('contributeBtn')}
                   </button>`
               }
             </div>
@@ -2091,10 +2335,10 @@ const Views = {
           <div class="reward-store-footer">
             <div class="reward-cost-tag">⭐ ${rw.cost} stars</div>
             ${pending
-              ? `<span class="badge badge-done-awaiting">⏳ Pending approval</span>`
+              ? `<span class="badge badge-done-awaiting">${t('pendingApproval')}</span>`
               : canAfford
-                ? `<button class="btn btn-child btn-sm" onclick="doRedeemReward('${rw.id}','${child.id}')">🎁 Redeem</button>`
-                : `<span style="font-size:0.78rem;color:var(--muted);">Need ${rw.cost - child.totalPoints} more ⭐</span>`
+                ? `<button class="btn btn-child btn-sm" onclick="doRedeemReward('${rw.id}','${child.id}')">${t('redeemBtn')}</button>`
+                : `<span style="font-size:0.78rem;color:var(--muted);">${t('needMoreStars').replace('{n}', rw.cost - child.totalPoints)}</span>`
             }
           </div>
         </div>`;
@@ -2121,17 +2365,17 @@ const Views = {
 
       document.getElementById('view-child-rewards').innerHTML = `
         <div class="view-header" style="background:linear-gradient(135deg,var(--teal),var(--blue));border-bottom:none;">
-          <button class="btn-back" onclick="Router.back()" style="background:rgba(255,255,255,0.2);color:white;">←</button>
-          <h2 style="color:white;">${child.emoji} Reward Store</h2>
+          <button class="btn-back" onclick="Router.back()" style="background:rgba(255,255,255,0.2);color:white;">${t('back')}</button>
+          <h2 style="color:white;">${child.emoji} ${t('rewardStore')}</h2>
           <div style="background:rgba(255,255,255,0.2);border-radius:50px;padding:5px 12px;font-family:'Nunito',sans-serif;font-weight:800;font-size:0.9rem;color:white;">
             ⭐ ${child.totalPoints}
           </div>
         </div>
         <div style="padding:16px 16px 30px;">
-          <div class="section-title">🛍️ Available Rewards</div>
+          <div class="section-title">${t('availableRewards')}</div>
           ${rewardCards}
           ${historyCards ? `
-            <div class="section-title" style="margin-top:20px;">📜 My Redemption History</div>
+            <div class="section-title" style="margin-top:20px;">${t('myRedemptions')}</div>
             ${historyCards}` : ''}
         </div>`;
     }
@@ -2161,20 +2405,20 @@ const Views = {
             <span style="font-size:0.73rem;color:var(--muted);">${formatDate(req.createdAt)}</span>
           </div>
           ${req.description ? `<div class="request-desc">${esc(req.description)}</div>` : ''}
-          ${req.reply ? `<div class="reply-bubble ${req.status}">💬 Parent replied: ${esc(req.reply)}</div>` : ''}
+          ${req.reply ? `<div class="reply-bubble ${req.status}">${t('parentReplied')} ${esc(req.reply)}</div>` : ''}
         </div>`).join('');
 
       document.getElementById('view-child-request-history').innerHTML = `
         <div class="view-header">
-          <button class="btn-back" onclick="Router.back()">←</button>
-          <h2>${child.emoji} My Requests</h2>
+          <button class="btn-back" onclick="Router.back()">${t('back')}</button>
+          <h2>${child.emoji} ${t('myRequests')}</h2>
         </div>
         <div style="padding:12px 16px 24px;">
           ${reqs.length ? cards : `
             <div class="empty-state">
               <span class="empty-emoji">📬</span>
-              <h3>No requests yet</h3>
-              <p>Tap the ✉️ button on your home screen to send a request</p>
+              <h3>${t('noReqChild')}</h3>
+              <p>${t('noReqChildDesc')}</p>
             </div>`}
         </div>`;
     }
@@ -2202,7 +2446,7 @@ function doMarkTaskDone(compId, childId) {
   comp.status = 'done-awaiting';
   State.save();
   spawnConfetti();
-  showToast('✅ Task marked done! Waiting for parent approval…');
+  showToast(_lang==='he'?'✅ המשימה סומנה כבוצעת! ממתינה לאישור הורה…':'✅ Task marked done! Waiting for parent approval…');
   setTimeout(() => Router.navigate('child-home', { childId }, false), 400);
 }
 
@@ -2217,7 +2461,7 @@ function doVerifyTask(compId) {
   logHistory('task', '✅', `Verified "${task.title}" for ${child.name} (+${task.points} ⭐)`, child.id);
   State.save();
   checkStreakForChild(child.id);
-  showToast(`⭐ ${child.name} earned ${task.points} star${task.points > 1 ? 's' : ''}!`);
+  showToast(_lang==='he'?`⭐ ${child.name} הרוויח ${task.points} כוכב${task.points > 1 ? 'ים' : ''}!`:`⭐ ${child.name} earned ${task.points} star${task.points > 1 ? 's' : ''}!`);
   switchTab(Views['parent-dashboard']._tab);
 }
 
@@ -2226,65 +2470,65 @@ function doSkipTask(compId) {
   if (!comp) return;
   comp.status = 'skipped';
   State.save();
-  showToast('Task skipped');
+  showToast(_lang==='he'?'משימה דולגה':'Task skipped');
   switchTab(Views['parent-dashboard']._tab);
 }
 
 function _taskModalHTML(task) {
-  const t = task || {};
+  const tk = task || {};
   return `
     <div class="form-group">
-      <label class="form-label">Title *</label>
-      <input type="text" class="form-input" id="tm-title" value="${esc(t.title||'')}" placeholder="e.g. Clean your room">
-      <span class="form-error" id="tm-title-err">Please enter a title</span>
+      <label class="form-label">${t('titleField')}</label>
+      <input type="text" class="form-input" id="tm-title" value="${esc(tk.title||'')}" placeholder="...">
+      <span class="form-error" id="tm-title-err">${_lang==='he'?'נא להזין שם':'Please enter a title'}</span>
     </div>
     <div class="form-group">
-      <label class="form-label">Description (optional)</label>
-      <input type="text" class="form-input" id="tm-desc" value="${esc(t.description||'')}" placeholder="Extra details...">
+      <label class="form-label">${t('descField')}</label>
+      <input type="text" class="form-input" id="tm-desc" value="${esc(tk.description||'')}" placeholder="...">
     </div>
     <div class="form-group">
-      <label class="form-label">Category</label>
+      <label class="form-label">${t('catField')}</label>
       <select class="form-select" id="tm-cat">
-        <option value="chores"    ${t.category==='chores'?'selected':''}>🧹 Chores</option>
-        <option value="homework"  ${t.category==='homework'?'selected':''}>📚 Homework</option>
-        <option value="self-care" ${t.category==='self-care'?'selected':''}>🛁 Self-care</option>
-        <option value="other"     ${(!t.category||t.category==='other')?'selected':''}>✨ Other</option>
+        <option value="chores"    ${tk.category==='chores'?'selected':''}>🧹 ${t('catChores')}</option>
+        <option value="homework"  ${tk.category==='homework'?'selected':''}>📚 ${t('catHomework')}</option>
+        <option value="self-care" ${tk.category==='self-care'?'selected':''}>🛁 ${t('catSelfCare')}</option>
+        <option value="other"     ${(!tk.category||tk.category==='other')?'selected':''}>✨ ${t('catOther')}</option>
       </select>
     </div>
     <div class="form-group">
-      <label class="form-label">Assign to</label>
+      <label class="form-label">${t('assignField')}</label>
       <select class="form-select" id="tm-assign">
-        <option value="all" ${t.assignedTo==='all'||!t.assignedTo?'selected':''}>Everyone 👨‍👩‍👧‍👦</option>
-        ${State.data.children.map(c=>`<option value="${c.id}" ${t.assignedTo===c.id?'selected':''}>${c.emoji} ${esc(c.name)}</option>`).join('')}
+        <option value="all" ${tk.assignedTo==='all'||!tk.assignedTo?'selected':''}>${t('everyone')}</option>
+        ${State.data.children.map(c=>`<option value="${c.id}" ${tk.assignedTo===c.id?'selected':''}>${c.emoji} ${esc(c.name)}</option>`).join('')}
       </select>
     </div>
     <div class="form-group">
-      <label class="form-label">Recurrence</label>
+      <label class="form-label">${t('recField')}</label>
       <select class="form-select" id="tm-rec">
-        <option value="daily"    ${t.recurrence==='daily'||!t.recurrence?'selected':''}>📅 Daily</option>
-        <option value="weekly"   ${t.recurrence==='weekly'?'selected':''}>📆 Weekly</option>
-        <option value="one-time" ${t.recurrence==='one-time'?'selected':''}>🎯 One-time</option>
+        <option value="daily"    ${tk.recurrence==='daily'||!tk.recurrence?'selected':''}>${t('recDaily')}</option>
+        <option value="weekly"   ${tk.recurrence==='weekly'?'selected':''}>${t('recWeekly')}</option>
+        <option value="one-time" ${tk.recurrence==='one-time'?'selected':''}>${t('recOneTime')}</option>
       </select>
     </div>
     <div class="form-group">
-      <label class="form-label">Points (1–5 stars)</label>
+      <label class="form-label">${t('pointsField')}</label>
       <div class="star-picker" id="tm-stars">
-        ${[1,2,3,4,5].map(n=>`<button type="button" class="star-pick-btn${n<=(t.points||2)?' filled':''}" onclick="selectTaskPoints(${n})">★</button>`).join('')}
+        ${[1,2,3,4,5].map(n=>`<button type="button" class="star-pick-btn${n<=(tk.points||2)?' filled':''}" onclick="selectTaskPoints(${n})">★</button>`).join('')}
       </div>
-      <input type="hidden" id="tm-points" value="${t.points||2}">
+      <input type="hidden" id="tm-points" value="${tk.points||2}">
     </div>
     <div class="form-group">
-      <label class="form-label">Time of day</label>
+      <label class="form-label">${t('todField')}</label>
       <select class="form-select" id="tm-tod">
-        <option value="morning" ${(t.timeOfDay||'anytime')==='morning'?'selected':''}>🌅 Morning</option>
-        <option value="noon"    ${(t.timeOfDay||'anytime')==='noon'   ?'selected':''}>☀️ Noon</option>
-        <option value="evening" ${(t.timeOfDay||'anytime')==='evening'?'selected':''}>🌙 Evening</option>
-        <option value="anytime" ${(!t.timeOfDay||t.timeOfDay==='anytime')?'selected':''}>✨ Anytime</option>
+        <option value="morning" ${(tk.timeOfDay||'anytime')==='morning'?'selected':''}>${t('todMorning')}</option>
+        <option value="noon"    ${(tk.timeOfDay||'anytime')==='noon'   ?'selected':''}>${t('todNoon')}</option>
+        <option value="evening" ${(tk.timeOfDay||'anytime')==='evening'?'selected':''}>${t('todEvening')}</option>
+        <option value="anytime" ${(!tk.timeOfDay||tk.timeOfDay==='anytime')?'selected':''}>${t('todAnytime')}</option>
       </select>
     </div>
     <div class="form-group">
-      <label class="form-label">Due time (optional)</label>
-      <input type="text" class="form-input" id="tm-due" value="${esc(t.dueTime||'')}" placeholder="e.g. before dinner">
+      <label class="form-label">${t('dueField')}</label>
+      <input type="text" class="form-input" id="tm-due" value="${esc(tk.dueTime||'')}" placeholder="${t('duePlaceholder')}">
     </div>`;
 }
 
@@ -2329,16 +2573,16 @@ function doSaveTask(editId) {
   }
   State.save();
   closeModal();
-  showToast(editId ? '✏️ Task updated!' : '✅ Task added!');
+  showToast(editId ? (_lang==='he'?'✏️ משימה עודכנה!':'✏️ Task updated!') : (_lang==='he'?'✅ משימה נוספה!':'✅ Task added!'));
   switchTab('tasks');
 }
 
 function doDeleteTask(taskId) {
-  if (!confirm('Delete this task? This cannot be undone.')) return;
+  if (!confirm(_lang==='he'?'למחוק את המשימה? לא ניתן לבטל פעולה זו.':'Delete this task? This cannot be undone.')) return;
   State.data.tasks = State.data.tasks.filter(t => t.id !== taskId);
   State.data.taskCompletions = State.data.taskCompletions.filter(c => c.taskId !== taskId);
   State.save();
-  showToast('🗑️ Task deleted');
+  showToast(_lang==='he'?'🗑️ המשימה נמחקה':'🗑️ Task deleted');
   switchTab('tasks');
 }
 
@@ -2352,7 +2596,7 @@ function doApproveRequest(reqId) {
   const child = State.getChild(req.childId);
   logHistory('request', '📬', `Approved request "${req.title}"${child ? ' for ' + child.name : ''}`, req.childId);
   State.save();
-  showToast('✅ Request approved!');
+  showToast(_lang==='he'?'✅ הבקשה אושרה!':'✅ Request approved!');
   switchTab('requests');
 }
 
@@ -2368,7 +2612,7 @@ function doRejectRequest(reqId) {
   req.status = 'rejected';
   req.reply = rt ? rt.value.trim() : '';
   State.save();
-  showToast('Request rejected');
+  showToast(_lang==='he'?'הבקשה נדחתה':'Request rejected');
   switchTab('requests');
 }
 
@@ -2379,32 +2623,32 @@ function _childModalHTML(child) {
   const c = child || {};
   return `
     <div class="form-group">
-      <label class="form-label">Child's name *</label>
-      <input type="text" class="form-input" id="cm-name" value="${esc(c.name||'')}" placeholder="e.g. Emma">
-      <span class="form-error" id="cm-name-err">Please enter a name</span>
+      <label class="form-label">${t('childNameField')}</label>
+      <input type="text" class="form-input" id="cm-name" value="${esc(c.name||'')}" placeholder="${t('childNamePlaceholder')}">
+      <span class="form-error" id="cm-name-err">${_lang==='he'?'נא להזין שם':'Please enter a name'}</span>
     </div>
     <div class="form-group">
-      <label class="form-label">Choose emoji</label>
+      <label class="form-label">${t('chooseEmoji')}</label>
       <div class="emoji-picker" id="cm-emoji-picker">
         ${CHILD_EMOJIS.map(e => `<div class="emoji-option${e===(c.emoji||CHILD_EMOJIS[0])?' selected':''}" onclick="selectChildEmoji('${e}',this)">${e}</div>`).join('')}
       </div>
       <input type="hidden" id="cm-emoji" value="${c.emoji||CHILD_EMOJIS[0]}">
     </div>
     <div class="form-group">
-      <label class="form-label">PIN (4 digits) *</label>
+      <label class="form-label">${t('pinField')}</label>
       <input type="tel" class="form-input" id="cm-pin" value="${c.pin||''}" placeholder="e.g. 1234" maxlength="4" pattern="[0-9]{4}" inputmode="numeric">
-      <span class="form-error" id="cm-pin-err">PIN must be exactly 4 digits</span>
+      <span class="form-error" id="cm-pin-err">${_lang==='he'?'קוד חייב להיות בדיוק 4 ספרות':'PIN must be exactly 4 digits'}</span>
     </div>`;
 }
 
 function openAddChild() {
-  openModal(_childModalHTML(null) + `<button class="btn btn-primary btn-full" onclick="doSaveChild(null)">Add Child ✓</button>`, '👧 New Child');
+  openModal(_childModalHTML(null) + `<button class="btn btn-primary btn-full" onclick="doSaveChild(null)">${t('addChildBtn')}</button>`, t('newChild'));
 }
 
 function openEditChild(childId) {
   const child = State.getChild(childId);
   if (!child) return;
-  openModal(_childModalHTML(child) + `<button class="btn btn-primary btn-full" onclick="doSaveChild('${childId}')">Save Changes ✓</button>`, '✏️ Edit Child');
+  openModal(_childModalHTML(child) + `<button class="btn btn-primary btn-full" onclick="doSaveChild('${childId}')">${t('saveChangesBtn')}</button>`, t('editChild'));
 }
 
 function selectChildEmoji(emoji, el) {
@@ -2443,14 +2687,14 @@ function doSaveChild(editId) {
   }
   State.save();
   closeModal();
-  showToast(editId ? '✏️ Child updated!' : '👧 Child added!');
+  showToast(editId ? (_lang==='he'?'✏️ הילד עודכן!':'✏️ Child updated!') : (_lang==='he'?'👧 ילד נוסף!':'👧 Child added!'));
   switchTab('children');
 }
 
 function doRemoveChild(childId) {
   const child = State.getChild(childId);
   if (!child) return;
-  if (!confirm(`Remove ${child.name}? All their task history and requests will also be removed.`)) return;
+  if (!confirm(_lang==='he' ? `להסיר את ${child.name}? כל ההיסטוריה והבקשות שלהם יוסרו גם כן.` : `Remove ${child.name}? All their task history and requests will also be removed.`)) return;
   State.data.children          = State.data.children.filter(c => c.id !== childId);
   State.data.taskCompletions   = State.data.taskCompletions.filter(c => c.childId !== childId);
   State.data.requests          = State.data.requests.filter(r => r.childId !== childId);
@@ -2465,7 +2709,7 @@ function doSaveMotto() {
   if (!v) return;
   State.data.familyMotto = v.value.trim();
   State.save();
-  showToast('✅ Motto saved!');
+  showToast(_lang==='he'?'✅ הסיסמה נשמרה!':'✅ Motto saved!');
 }
 
 function doSaveParentPin() {
@@ -2483,14 +2727,14 @@ function doSaveParentPin() {
   State.data.parentPin = pin;
   State.save();
   v.value = '';
-  showToast('🔑 PIN changed!');
+  showToast(_lang==='he'?'🔑 הקוד שונה!':'🔑 PIN changed!');
 }
 
 function doResetApp() {
-  if (!confirm('Reset all data to demo? This cannot be undone.')) return;
+  if (!confirm(_lang==='he'?'לאפס את כל הנתונים לדמו? לא ניתן לבטל פעולה זו.':'Reset all data to demo? This cannot be undone.')) return;
   localStorage.removeItem('familyApp');
   State.seed();
-  showToast('🔄 Reset to demo data');
+  showToast(_lang==='he'?'🔄 אופס לנתוני דמו':'🔄 Reset to demo data');
   switchTab('tasks');
 }
 
@@ -2500,7 +2744,7 @@ function doSaveStreakConfig() {
   const bonus   = parseInt(document.getElementById('streak-bonus') && document.getElementById('streak-bonus').value) || 5;
   State.data.streakConfig = { enabled, requiredDays: Math.max(2, days), bonusStars: Math.max(1, bonus) };
   State.save();
-  showToast(enabled ? `🔥 Streak bonus enabled: ${days} days → +${bonus} ⭐` : 'Streak bonus disabled');
+  showToast(enabled ? (_lang==='he'?`🔥 בונוס רצף פעיל: ${days} ימים ← +${bonus} ⭐`:`🔥 Streak bonus enabled: ${days} days → +${bonus} ⭐`) : (_lang==='he'?'בונוס רצף כובה':'Streak bonus disabled'));
 }
 
 function doToggleNotif() {
@@ -2508,12 +2752,12 @@ function doToggleNotif() {
   if (!cb) return;
   State.data.notificationSettings.enabled = cb.checked;
   State.save();
-  showToast(cb.checked ? '🔔 Reminders active' : '🔕 Reminders paused');
+  showToast(cb.checked ? (_lang==='he'?'🔔 תזכורות פעילות':'🔔 Reminders active') : (_lang==='he'?'🔕 תזכורות מושהות':'🔕 Reminders paused'));
 }
 
 function doAddReminder() {
   if (!State.data.notificationSettings.reminders) State.data.notificationSettings.reminders = [];
-  State.data.notificationSettings.reminders.push({ id: genId(), label: 'Task reminder', hour: 18, minute: 0, active: true });
+  State.data.notificationSettings.reminders.push({ id: genId(), label: _lang==='he'?'תזכורת משימות':'Task reminder', hour: 18, minute: 0, active: true });
   State.save();
   switchTab('settings');
 }
@@ -2525,12 +2769,12 @@ function doSaveReminder(remId) {
   const hr  = document.getElementById('rem-hr-'  + remId);
   const min = document.getElementById('rem-min-' + remId);
   const on  = document.getElementById('rem-on-'  + remId);
-  if (lbl) rem.label  = lbl.value.trim() || 'Task reminder';
+  if (lbl) rem.label  = lbl.value.trim() || (_lang==='he'?'תזכורת משימות':'Task reminder');
   if (hr)  rem.hour   = Math.min(23, Math.max(0, parseInt(hr.value)  || 0));
   if (min) rem.minute = Math.min(59, Math.max(0, parseInt(min.value) || 0));
   if (on)  rem.active = on.checked;
   State.save();
-  showToast('🔔 Reminder saved');
+  showToast(_lang==='he'?'🔔 תזכורת נשמרה':'🔔 Reminder saved');
 }
 
 function doDeleteReminder(remId) {
@@ -2598,7 +2842,7 @@ function doSubmitRequest(childId) {
     createdAt: Date.now()
   });
   State.save();
-  showToast('✉️ Request sent to parents!');
+  showToast(_lang==='he'?'✉️ הבקשה נשלחה להורים!':'✉️ Request sent to parents!');
   Router.back();
 }
 
@@ -2613,31 +2857,31 @@ function _rewardModalHTML(rw) {
   const isGroup = r.isGroup || false;
   return `
     <div class="form-group">
-      <label class="form-label">Reward Type</label>
+      <label class="form-label">${t('rewardTypeField')}</label>
       <div class="choice-grid choice-grid-2">
-        <button type="button" class="choice-btn${!isGroup?' sel-active':''}" id="rwtype-individual" onclick="selectRewardType('individual')">👤 Individual</button>
-        <button type="button" class="choice-btn${isGroup?' sel-active':''}" id="rwtype-group" onclick="selectRewardType('group')">👨‍👩‍👧‍👦 Family Challenge</button>
+        <button type="button" class="choice-btn${!isGroup?' sel-active':''}" id="rwtype-individual" onclick="selectRewardType('individual')">${t('individualType')}</button>
+        <button type="button" class="choice-btn${isGroup?' sel-active':''}" id="rwtype-group" onclick="selectRewardType('group')">${t('groupType')}</button>
       </div>
       <input type="hidden" id="rw-isgroup" value="${isGroup?'1':'0'}">
     </div>
     <div class="form-group">
-      <label class="form-label">Icon</label>
+      <label class="form-label">${t('iconField')}</label>
       <div class="emoji-picker" id="rw-icon-picker">
         ${REWARD_EMOJIS.map(e => `<div class="emoji-option${e===(r.icon||'🎁')?' selected':''}" onclick="selectRewardIcon('${e}',this)">${e}</div>`).join('')}
       </div>
       <input type="hidden" id="rw-icon" value="${r.icon||'🎁'}">
     </div>
     <div class="form-group">
-      <label class="form-label">Reward name *</label>
-      <input type="text" class="form-input" id="rw-title" value="${esc(r.title||'')}" placeholder="e.g. 30 min extra screen time">
-      <span class="form-error" id="rw-title-err">Please enter a name</span>
+      <label class="form-label">${t('rewardNameField')}</label>
+      <input type="text" class="form-input" id="rw-title" value="${esc(r.title||'')}" placeholder="${_lang==='he'?'למשל: 30 דקות מסך נוסף':'e.g. 30 min extra screen time'}">
+      <span class="form-error" id="rw-title-err">${_lang==='he'?'נא להזין שם':'Please enter a name'}</span>
     </div>
     <div class="form-group">
-      <label class="form-label">Description (optional)</label>
-      <input type="text" class="form-input" id="rw-desc" value="${esc(r.description||'')}" placeholder="Extra details...">
+      <label class="form-label">${t('descField')}</label>
+      <input type="text" class="form-input" id="rw-desc" value="${esc(r.description||'')}" placeholder="${_lang==='he'?'פרטים נוספים...':'Extra details...'}">
     </div>
     <div class="form-group">
-      <label class="form-label" id="rw-cost-label">${isGroup ? 'Total stars goal (all children combined) *' : 'Cost in stars *'}</label>
+      <label class="form-label" id="rw-cost-label">${isGroup ? t('goalCostField') : t('costField')}</label>
       <div style="display:flex;align-items:center;gap:10px;">
         <button type="button" onclick="adjustRewardCost(-1)" style="width:36px;height:36px;border-radius:50%;border:2px solid var(--border);background:white;font-size:1.2rem;cursor:pointer;display:flex;align-items:center;justify-content:center;">−</button>
         <input type="number" class="form-input" id="rw-cost" value="${r.cost||5}" min="1" max="999" style="text-align:center;font-family:'Nunito',sans-serif;font-weight:800;font-size:1.3rem;width:90px;">
@@ -2656,7 +2900,7 @@ function selectRewardType(type) {
   document.getElementById('rwtype-individual').className = 'choice-btn' + (type === 'individual' ? ' sel-active' : '');
   document.getElementById('rwtype-group').className      = 'choice-btn' + (type === 'group'      ? ' sel-active' : '');
   const lbl = document.getElementById('rw-cost-label');
-  if (lbl) lbl.textContent = type === 'group' ? 'Total stars goal (all children combined) *' : 'Cost in stars *';
+  if (lbl) lbl.textContent = type === 'group' ? t('goalCostField') : t('costField');
 }
 
 function selectRewardIcon(icon, el) {
@@ -2673,13 +2917,13 @@ function adjustRewardCost(delta) {
 }
 
 function openAddReward() {
-  openModal(_rewardModalHTML(null) + `<button class="btn btn-primary btn-full" style="margin-top:8px;" onclick="doSaveReward(null)">Add Reward ✓</button>`, '🎁 New Reward');
+  openModal(_rewardModalHTML(null) + `<button class="btn btn-primary btn-full" style="margin-top:8px;" onclick="doSaveReward(null)">${t('addRewardBtn')}</button>`, t('newReward'));
 }
 
 function openEditReward(rewardId) {
   const rw = (State.data.rewards||[]).find(r => r.id === rewardId);
   if (!rw) return;
-  openModal(_rewardModalHTML(rw) + `<button class="btn btn-primary btn-full" style="margin-top:8px;" onclick="doSaveReward('${rewardId}')">Save Changes ✓</button>`, '✏️ Edit Reward');
+  openModal(_rewardModalHTML(rw) + `<button class="btn btn-primary btn-full" style="margin-top:8px;" onclick="doSaveReward('${rewardId}')">${t('saveChangesBtn')}</button>`, t('editReward'));
 }
 
 function doSaveReward(editId) {
@@ -2722,16 +2966,16 @@ function doSaveReward(editId) {
   }
   State.save();
   closeModal();
-  showToast(editId ? '✏️ Reward updated!' : '🎁 Reward added!');
+  showToast(editId ? (_lang==='he'?'✏️ הפרס עודכן!':'✏️ Reward updated!') : (_lang==='he'?'🎁 פרס נוסף!':'🎁 Reward added!'));
   switchTab('rewards');
 }
 
 function doDeleteReward(rewardId) {
-  if (!confirm('Delete this reward? Children will no longer be able to redeem it.')) return;
+  if (!confirm(_lang==='he'?'למחוק את הפרס? הילדים לא יוכלו לממש אותו יותר.':'Delete this reward? Children will no longer be able to redeem it.')) return;
   State.data.rewards = (State.data.rewards||[]).filter(r => r.id !== rewardId);
   State.data.redemptions = (State.data.redemptions||[]).filter(r => r.rewardId !== rewardId);
   State.save();
-  showToast('🗑️ Reward deleted');
+  showToast(_lang==='he'?'🗑️ הפרס נמחק':'🗑️ Reward deleted');
   switchTab('rewards');
 }
 
@@ -2740,7 +2984,7 @@ function doToggleReward(rewardId) {
   if (!rw) return;
   rw.isActive = !rw.isActive;
   State.save();
-  showToast(rw.isActive ? '👁️ Reward activated' : '🚫 Reward hidden from store');
+  showToast(rw.isActive ? (_lang==='he'?'👁️ הפרס הופעל':'👁️ Reward activated') : (_lang==='he'?'🚫 הפרס הוסתר מהחנות':'🚫 Reward hidden from store'));
   switchTab('rewards');
 }
 
@@ -2749,14 +2993,14 @@ function doRedeemReward(rewardId, childId) {
   const rw = (State.data.rewards||[]).find(r => r.id === rewardId);
   if (!child || !rw) return;
   if (child.totalPoints < rw.cost) {
-    showToast(`❌ Not enough stars! Need ${rw.cost - child.totalPoints} more ⭐`);
+    showToast(_lang==='he'?`❌ אין מספיק כוכבים! חסרים עוד ${rw.cost - child.totalPoints} ⭐`:`❌ Not enough stars! Need ${rw.cost - child.totalPoints} more ⭐`);
     return;
   }
   const alreadyPending = (State.data.redemptions||[]).find(
     r => r.rewardId === rewardId && r.childId === childId && r.status === 'pending'
   );
   if (alreadyPending) {
-    showToast('⏳ You already have a pending request for this reward');
+    showToast(_lang==='he'?'⏳ כבר יש לך בקשת מימוש ממתינה לפרס זה':'⏳ You already have a pending request for this reward');
     return;
   }
   if (!State.data.redemptions) State.data.redemptions = [];
@@ -2767,7 +3011,7 @@ function doRedeemReward(rewardId, childId) {
   });
   State.save();
   spawnConfetti();
-  showToast(`🎁 Redemption request sent for "${rw.title}"!`);
+  showToast(_lang==='he'?`🎁 בקשת מימוש נשלחה עבור "${rw.title}"!`:`🎁 Redemption request sent for "${rw.title}"!`);
   Router.navigate('child-rewards', { childId }, false);
 }
 
@@ -2786,10 +3030,10 @@ function openContributeModal(rewardId, childId) {
     <div style="text-align:center;margin-bottom:16px;">
       <div style="font-size:2.5rem;">${rw.icon}</div>
       <div style="font-family:'Nunito',sans-serif;font-weight:700;font-size:1rem;margin-top:6px;">${esc(rw.title)}</div>
-      <div style="font-size:0.83rem;color:var(--muted);margin-top:4px;">Family goal: ${rw.cost} ⭐ &nbsp;·&nbsp; Collected so far: ${prog.total} ⭐</div>
+      <div style="font-size:0.83rem;color:var(--muted);margin-top:4px;">${t('familyGoal')} ${rw.cost} ⭐ &nbsp;·&nbsp; ${t('collectedSoFar')} ${prog.total} ⭐</div>
     </div>
     <div class="form-group">
-      <label class="form-label">Your contribution (you have ${child.totalPoints} ⭐)</label>
+      <label class="form-label">${t('yourContrib').replace('{n}', child.totalPoints)}</label>
       <div style="display:flex;align-items:center;gap:10px;">
         <button type="button" onclick="adjustContrib(-1)" style="width:38px;height:38px;border-radius:50%;border:2px solid var(--border);background:white;font-size:1.3rem;cursor:pointer;flex-shrink:0;">−</button>
         <input type="number" class="form-input" id="contrib-amount" value="${myContrib ? myContrib.amount : Math.min(5, maxContrib)}" min="1" max="${maxContrib}" style="text-align:center;font-family:'Nunito',sans-serif;font-weight:800;font-size:1.5rem;">
@@ -2798,14 +3042,14 @@ function openContributeModal(rewardId, childId) {
       </div>
       <div style="display:flex;gap:6px;margin-top:8px;flex-wrap:wrap;">
         ${[1,3,5,10].filter(n=>n<=maxContrib).map(n=>`<button type="button" onclick="document.getElementById('contrib-amount').value=${n}" style="padding:4px 10px;border-radius:50px;border:1.5px solid var(--border);background:white;font-family:'Nunito',sans-serif;font-weight:700;font-size:0.8rem;cursor:pointer;">${n} ⭐</button>`).join('')}
-        ${maxContrib > 0 ? `<button type="button" onclick="document.getElementById('contrib-amount').value=${maxContrib}" style="padding:4px 10px;border-radius:50px;border:1.5px solid var(--teal);background:#E8FBFA;font-family:'Nunito',sans-serif;font-weight:700;font-size:0.8rem;cursor:pointer;color:#0d7a75;">All (${maxContrib}) ⭐</button>` : ''}
+        ${maxContrib > 0 ? `<button type="button" onclick="document.getElementById('contrib-amount').value=${maxContrib}" style="padding:4px 10px;border-radius:50px;border:1.5px solid var(--teal);background:#E8FBFA;font-family:'Nunito',sans-serif;font-weight:700;font-size:0.8rem;cursor:pointer;color:#0d7a75;">${_lang==='he'?`הכל (${maxContrib}) ⭐`:`All (${maxContrib}) ⭐`}</button>` : ''}
       </div>
-      <span class="form-error" id="contrib-err">Please enter an amount between 1 and ${maxContrib}</span>
+      <span class="form-error" id="contrib-err">${_lang==='he'?`הכנס סכום בין 1 ל-${maxContrib}`:`Please enter an amount between 1 and ${maxContrib}`}</span>
     </div>
     <button class="btn btn-child btn-full" onclick="doContributeToGroup('${rewardId}','${childId}')">
-      ⭐ Confirm Contribution
+      ${t('confirmContrib')}
     </button>
-  `, `🤝 Contribute to Family Goal`);
+  `, t('contributeToGoal'));
 }
 
 function adjustContrib(delta) {
@@ -2842,8 +3086,8 @@ function doContributeToGroup(rewardId, childId) {
   const goalMet = total >= rw.cost;
   if (goalMet) spawnConfetti();
   showToast(goalMet
-    ? `🎉 Family goal reached! Ask a parent to approve "${rw.title}"!`
-    : `⭐ You're contributing ${amount} stars! ${rw.cost - total} more needed.`
+    ? (_lang==='he'?`🎉 היעד המשפחתי הושג! בקש מהורה לאשר "${rw.title}"!`:`🎉 Family goal reached! Ask a parent to approve "${rw.title}"!`)
+    : (_lang==='he'?`⭐ תרמת ${amount} כוכבים! נדרשים עוד ${rw.cost - total}.`:`⭐ You're contributing ${amount} stars! ${rw.cost - total} more needed.`)
   );
   Router.navigate('child-rewards', { childId }, false);
 }
@@ -2862,7 +3106,7 @@ function doApproveGroupReward(rdId) {
   logHistory('reward', '🎡', `Approved family reward "${rw.title}" — goal reached together!`, null);
   State.save();
   spawnConfetti();
-  showToast(`🎉 Family reward approved! "${rw.title}" unlocked!`);
+  showToast(_lang==='he'?`🎉 פרס משפחתי אושר! "${rw.title}" נפתח!`:`🎉 Family reward approved! "${rw.title}" unlocked!`);
   switchTab('rewards');
 }
 
@@ -2872,7 +3116,7 @@ function doRejectGroupReward(rdId) {
   rd.status = 'rejected';
   rd.resolvedAt = Date.now();
   State.save();
-  showToast('Group reward cancelled — contributions have been returned');
+  showToast(_lang==='he'?'פרס משפחתי בוטל — התרומות הוחזרו':'Group reward cancelled — contributions have been returned');
   switchTab('rewards');
 }
 
@@ -2883,7 +3127,7 @@ function doApproveRedemption(rdId) {
   const child = State.getChild(rd.childId);
   if (!rw || !child) return;
   if (child.totalPoints < rw.cost) {
-    showToast(`❌ ${child.name} only has ${child.totalPoints} ⭐ — not enough for this reward`);
+    showToast(_lang==='he'?`❌ ל${child.name} יש רק ${child.totalPoints} ⭐ — לא מספיק לפרס זה`:`❌ ${child.name} only has ${child.totalPoints} ⭐ — not enough for this reward`);
     return;
   }
   rd.status = 'approved';
@@ -2891,7 +3135,7 @@ function doApproveRedemption(rdId) {
   child.totalPoints -= rw.cost;
   logHistory('reward', '🎁', `Approved reward "${rw.title}" for ${child.name} (−${rw.cost} ⭐)`, child.id);
   State.save();
-  showToast(`✅ Approved! ${child.emoji} ${child.name} spent ${rw.cost} ⭐ on "${rw.title}"`);
+  showToast(_lang==='he'?`✅ אושר! ${child.emoji} ${child.name} הוציא ${rw.cost} ⭐ על "${rw.title}"`:`✅ Approved! ${child.emoji} ${child.name} spent ${rw.cost} ⭐ on "${rw.title}"`);
   switchTab('rewards');
 }
 
@@ -2902,7 +3146,7 @@ function doRejectRedemption(rdId) {
   rd.status = 'rejected';
   rd.resolvedAt = Date.now();
   State.save();
-  showToast(`Redemption rejected`);
+  showToast(_lang==='he'?'המימוש נדחה':'Redemption rejected');
   switchTab('rewards');
 }
 
@@ -2910,6 +3154,7 @@ function doRejectRedemption(rdId) {
    BOOT
 ===================================================================== */
 document.addEventListener('DOMContentLoaded', async function() {
+  document.getElementById('app').setAttribute('dir', _lang === 'he' ? 'rtl' : 'ltr');
   await State.load();
   Router.navigate('home');
   startNotificationChecker();
