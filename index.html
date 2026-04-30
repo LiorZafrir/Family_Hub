@@ -5,6 +5,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Family Hub 🏠</title>
   <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800&family=DM+Sans:wght@400;500&display=swap" rel="stylesheet">
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
   <style>
     /* ===== RESET & BASE ===== */
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -703,10 +705,47 @@
       border: 1px solid #FFD166;
       cursor: pointer;
     }
-    /* scrollable tab nav for 5 tabs */
+    /* scrollable tab nav for 6 tabs */
     .tab-nav { overflow-x: auto; flex-wrap: nowrap; scrollbar-width: none; }
     .tab-nav::-webkit-scrollbar { display: none; }
-    .tab-btn { min-width: 60px; }
+    .tab-btn { min-width: 56px; }
+
+    /* ===== TIME-OF-DAY SLOT HEADERS ===== */
+    .time-slot-header {
+      display: flex; align-items: center; gap: 6px;
+      font-family: 'Nunito', sans-serif; font-weight: 800; font-size: 0.82rem;
+      color: var(--muted); margin: 16px 0 7px; padding: 0 2px;
+      text-transform: uppercase; letter-spacing: 0.07em;
+    }
+    .time-slot-header:first-child { margin-top: 4px; }
+    .badge-morning { background: #FFF7E6; color: #D97706; }
+    .badge-noon    { background: #FEFCE8; color: #CA8A04; }
+    .badge-evening { background: #EEF2FF; color: #4338CA; }
+    .badge-anytime { background: #F0FDF4; color: #15803D; }
+
+    /* ===== STREAK ===== */
+    .streak-badge {
+      display: inline-flex; align-items: center; gap: 4px;
+      background: linear-gradient(135deg, #FEF3C7, #FFFBEB);
+      border: 1.5px solid #FFD166; border-radius: 50px;
+      padding: 5px 13px;
+      font-family: 'Nunito', sans-serif; font-weight: 800; font-size: 0.88rem;
+      color: #B45309;
+    }
+
+    /* ===== HISTORY ENTRIES ===== */
+    .history-entry {
+      background: var(--card); border-radius: var(--radius-sm);
+      box-shadow: var(--shadow-sm); padding: 11px 13px; margin-bottom: 9px;
+      border-left: 3px solid var(--green);
+    }
+    .history-entry.type-request { border-left-color: var(--blue); }
+    .history-entry.type-reward  { border-left-color: var(--yellow); }
+    .history-entry.type-streak  { border-left-color: var(--purple); }
+    .history-entry-top { display: flex; align-items: flex-start; gap: 7px; }
+    .history-entry-icon { font-size: 1.15rem; flex-shrink: 0; margin-top: 1px; }
+    .history-entry-desc { flex: 1; font-size: 0.86rem; line-height: 1.4; }
+    .history-entry-time { font-size: 0.72rem; color: var(--muted); margin-top: 4px; }
 
     /* ===== DIVIDER ===== */
     .divider { height: 1px; background: var(--border); margin: 14px 0; }
@@ -783,6 +822,20 @@
 'use strict';
 
 /* =====================================================================
+   FIREBASE INIT
+===================================================================== */
+firebase.initializeApp({
+  apiKey:            "AIzaSyCgb6tsBJgJnEdCuJELA3Wmg0DPiAi_RFo",
+  authDomain:        "zfamily-hub.firebaseapp.com",
+  databaseURL:       "https://zfamily-hub-default-rtdb.firebaseio.com",
+  projectId:         "zfamily-hub",
+  storageBucket:     "zfamily-hub.firebasestorage.app",
+  messagingSenderId: "656813285720",
+  appId:             "1:656813285720:web:c90facfbcb24681b13052d"
+});
+const _dbRef = firebase.database().ref('familyApp');
+
+/* =====================================================================
    UTILITIES
 ===================================================================== */
 function genId() {
@@ -842,6 +895,100 @@ function getMotivational(name) {
 
 const CAT_EMOJI = { chores: '🧹', homework: '📚', 'self-care': '🛁', other: '✨' };
 const REQ_EMOJI = { outing: '🚗', purchase: '🛒', permission: '🙋', other: '💬' };
+const TIME_OF_DAY = {
+  morning: { label: '🌅 Morning', order: 0 },
+  noon:    { label: '☀️ Noon',    order: 1 },
+  evening: { label: '🌙 Evening', order: 2 },
+  anytime: { label: '✨ Anytime', order: 3 }
+};
+
+/* =====================================================================
+   APPROVAL HISTORY
+===================================================================== */
+function logHistory(type, icon, description, childId) {
+  if (!State.data.approvalHistory) State.data.approvalHistory = [];
+  State.data.approvalHistory.unshift({
+    id: genId(), type, icon, description, childId,
+    ts: Date.now()
+  });
+  if (State.data.approvalHistory.length > 300) State.data.approvalHistory.length = 300;
+}
+
+/* =====================================================================
+   STREAK CHECKING
+===================================================================== */
+function checkStreakForChild(childId) {
+  const cfg = State.data.streakConfig;
+  if (!cfg || !cfg.enabled) return;
+  const child = State.getChild(childId);
+  if (!child) return;
+  const tasks = State.getChildTasks(childId);
+  const allDone = tasks.length > 0 && tasks.every(({ comp }) => comp && (comp.status === 'verified'));
+  if (!allDone) return;
+  const todayStr = today();
+  if (child.lastFullDay === todayStr) return;
+  const yesterday = new Date(Date.now() - 86400000).toISOString().split('T')[0];
+  if (child.lastFullDay === yesterday) {
+    child.currentStreak = (child.currentStreak || 0) + 1;
+  } else {
+    child.currentStreak = 1;
+  }
+  child.lastFullDay = todayStr;
+  if (child.currentStreak >= cfg.requiredDays) {
+    child.totalPoints += cfg.bonusStars;
+    child.currentStreak = 0;
+    logHistory('streak', '🔥', `${child.name} completed a ${cfg.requiredDays}-day streak! +${cfg.bonusStars} bonus ⭐`, childId);
+    State.save();
+    showToast(`🔥 ${child.name} hit a ${cfg.requiredDays}-day streak! +${cfg.bonusStars} bonus stars!`);
+  } else {
+    State.save();
+  }
+}
+
+/* =====================================================================
+   NOTIFICATIONS
+===================================================================== */
+let _notifCheckerInterval = null;
+let _firedToday = {};
+
+function requestNotifPermission(callback) {
+  if (!('Notification' in window)) {
+    showToast('❌ This browser does not support notifications');
+    return;
+  }
+  Notification.requestPermission().then(perm => {
+    State.data.notificationSettings.permission = perm;
+    State.save();
+    if (callback) callback(perm);
+    if (perm === 'granted') showToast('🔔 Notifications enabled!');
+    else if (perm === 'denied') showToast('❌ Notifications blocked in browser settings');
+    else showToast('Notification permission dismissed');
+    switchTab('settings');
+  });
+}
+
+function startNotificationChecker() {
+  if (_notifCheckerInterval) clearInterval(_notifCheckerInterval);
+  _notifCheckerInterval = setInterval(() => {
+    const ns = State.data.notificationSettings;
+    if (!ns || !ns.enabled || Notification.permission !== 'granted') return;
+    const now = new Date();
+    const hh = now.getHours(), mm = now.getMinutes();
+    const todayKey = today();
+    (ns.reminders || []).forEach(rem => {
+      if (!rem.active) return;
+      const key = rem.id + '_' + todayKey;
+      if (_firedToday[key]) return;
+      if (rem.hour === hh && rem.minute === mm) {
+        _firedToday[key] = true;
+        new Notification('Family Hub 🏠', {
+          body: rem.label || 'Time to check the task list!',
+          icon: ''
+        });
+      }
+    });
+  }, 30000);
+}
 
 /* =====================================================================
    ANIMATIONS
@@ -874,24 +1021,65 @@ const State = {
   data: null,
   currentUser: null,
 
-  load() {
-    const raw = localStorage.getItem('familyApp');
-    if (raw) {
-      try {
-        this.data = JSON.parse(raw);
-        if (!this.data.taskCompletions) this.data.taskCompletions = [];
-        if (!this.data.requests) this.data.requests = [];
-        if (!this.data.children) this.data.children = [];
-        if (!this.data.tasks) this.data.tasks = [];
-        if (!this.data.rewards) this.data.rewards = [];
-        if (!this.data.redemptions) this.data.redemptions = [];
-      } catch(e) { this.seed(); }
-    } else {
-      this.seed();
+  _localWrite: false,
+  _listening:  false,
+
+  async load() {
+    try {
+      const snapshot = await _dbRef.get();
+      if (snapshot.exists()) {
+        this.data = snapshot.val();
+        this._migrate();
+      } else {
+        this.seed();
+      }
+    } catch(e) {
+      console.warn('Firebase load failed, using localStorage fallback:', e);
+      const raw = localStorage.getItem('familyApp');
+      if (raw) { try { this.data = JSON.parse(raw); this._migrate(); } catch(e2) { this.seed(); } }
+      else { this.seed(); }
     }
+    this._startListening();
   },
 
-  save() { localStorage.setItem('familyApp', JSON.stringify(this.data)); },
+  _migrate() {
+    if (!this.data.taskCompletions)       this.data.taskCompletions = [];
+    if (!this.data.requests)              this.data.requests = [];
+    if (!this.data.children)              this.data.children = [];
+    if (!this.data.tasks)                 this.data.tasks = [];
+    if (!this.data.rewards)               this.data.rewards = [];
+    if (!this.data.redemptions)           this.data.redemptions = [];
+    if (!this.data.approvalHistory)       this.data.approvalHistory = [];
+    if (!this.data.notificationSettings)  this.data.notificationSettings = { enabled: false, reminders: [] };
+    if (!this.data.streakConfig)          this.data.streakConfig = { enabled: false, requiredDays: 7, bonusStars: 5 };
+    this.data.children.forEach(c => {
+      if (c.currentStreak === undefined) c.currentStreak = 0;
+      if (!c.lastFullDay) c.lastFullDay = '';
+    });
+    this.data.tasks.forEach(t => { if (!t.timeOfDay) t.timeOfDay = 'anytime'; });
+  },
+
+  _startListening() {
+    if (this._listening) return;
+    this._listening = true;
+    _dbRef.on('value', snapshot => {
+      if (!snapshot.exists() || this._localWrite) return;
+      this.data = snapshot.val();
+      this._migrate();
+      const modalOpen = document.getElementById('modal').classList.contains('show');
+      const view = Router.currentView;
+      if (!modalOpen && view && view !== 'pin' && view !== 'home') {
+        Views[view].render(Router.params || {});
+      }
+    });
+  },
+
+  save() {
+    this._localWrite = true;
+    _dbRef.set(this.data).catch(e => console.warn('Firebase save failed:', e));
+    setTimeout(() => { this._localWrite = false; }, 1500);
+    try { localStorage.setItem('familyApp', JSON.stringify(this.data)); } catch(e) {}
+  },
 
   seed() {
     const yoavId = genId(), noaId = genId();
@@ -902,15 +1090,15 @@ const State = {
       parentPin: '1234',
       familyMotto: 'Together we can do anything! 💪',
       children: [
-        { id: yoavId, name: 'Yoav', pin: '1111', emoji: '🦁', totalPoints: 12 },
-        { id: noaId,  name: 'Noa',  pin: '2222', emoji: '🦋', totalPoints: 8 }
+        { id: yoavId, name: 'Yoav', pin: '1111', emoji: '🦁', totalPoints: 12, currentStreak: 3, lastFullDay: '' },
+        { id: noaId,  name: 'Noa',  pin: '2222', emoji: '🦋', totalPoints: 8,  currentStreak: 1, lastFullDay: '' }
       ],
       tasks: [
-        { id: t1, title: 'Clean your room',       description: 'Tidy up and put toys away',         assignedTo: 'all',   category: 'chores',    recurrence: 'daily',    points: 2, dueTime: 'before dinner' },
-        { id: t2, title: 'Do homework',            description: 'Complete all school assignments',   assignedTo: 'all',   category: 'homework',  recurrence: 'daily',    points: 3, dueTime: 'before 5pm' },
-        { id: t3, title: 'Brush teeth',            description: 'Morning and night',                 assignedTo: 'all',   category: 'self-care', recurrence: 'daily',    points: 1, dueTime: '' },
-        { id: t4, title: 'Take out the trash',     description: 'Empty all bins in the house',       assignedTo: yoavId,  category: 'chores',    recurrence: 'weekly',   points: 3, dueTime: 'Sunday evening' },
-        { id: t5, title: 'Read for 20 minutes',   description: 'Any book you like!',                assignedTo: noaId,   category: 'self-care', recurrence: 'daily',    points: 2, dueTime: 'before bedtime' }
+        { id: t1, title: 'Clean your room',     description: 'Tidy up and put toys away',       assignedTo: 'all',  category: 'chores',    recurrence: 'daily',  points: 2, dueTime: 'before dinner',  timeOfDay: 'evening' },
+        { id: t2, title: 'Do homework',         description: 'Complete all school assignments', assignedTo: 'all',  category: 'homework',  recurrence: 'daily',  points: 3, dueTime: 'before 5pm',     timeOfDay: 'noon' },
+        { id: t3, title: 'Brush teeth',         description: 'Morning and night',               assignedTo: 'all',  category: 'self-care', recurrence: 'daily',  points: 1, dueTime: '',               timeOfDay: 'morning' },
+        { id: t4, title: 'Take out the trash',  description: 'Empty all bins in the house',     assignedTo: yoavId, category: 'chores',    recurrence: 'weekly', points: 3, dueTime: 'Sunday evening', timeOfDay: 'evening' },
+        { id: t5, title: 'Read for 20 minutes', description: 'Any book you like!',              assignedTo: noaId,  category: 'self-care', recurrence: 'daily',  points: 2, dueTime: 'before bedtime', timeOfDay: 'evening' }
       ],
       taskCompletions: [],
       requests: [
@@ -930,7 +1118,10 @@ const State = {
         { id: rw10, icon: '🚗', title: 'Family outing choice',            description: 'Pick the next family day out',            cost: 25, isActive: true, isGroup: false },
         { id: genId(), icon: '🎡', title: 'Day trip to the amusement park', description: 'Work together as a family to earn this!', cost: 30, isActive: true, isGroup: true }
       ],
-      redemptions: []
+      redemptions: [],
+      approvalHistory: [],
+      notificationSettings: { enabled: false, reminders: [] },
+      streakConfig: { enabled: false, requiredDays: 7, bonusStars: 5 }
     };
     this.save();
   },
@@ -1245,6 +1436,9 @@ const Views = {
             <button class="tab-btn ${tab==='settings'?'active':''}" onclick="switchTab('settings')">
               <span class="tab-icon">⚙️</span>Settings
             </button>
+            <button class="tab-btn ${tab==='history'?'active':''}" onclick="switchTab('history')">
+              <span class="tab-icon">📜</span>History
+            </button>
           </div>
 
           <div id="tab-content">${this._renderTab(tab)}</div>
@@ -1257,6 +1451,7 @@ const Views = {
       if (tab === 'rewards')  return this._rewards();
       if (tab === 'children') return this._children();
       if (tab === 'settings') return this._settings();
+      if (tab === 'history')  return this._history();
       return '';
     },
 
@@ -1514,6 +1709,24 @@ const Views = {
     },
 
     _settings() {
+      const sc = State.data.streakConfig || { enabled: false, requiredDays: 7, bonusStars: 5 };
+      const ns = State.data.notificationSettings || { enabled: false, reminders: [] };
+      const notifSupported = ('Notification' in window);
+      const notifPerm = notifSupported ? Notification.permission : 'unsupported';
+
+      const reminderRows = (ns.reminders || []).map(rem => `
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:7px;" id="rem-row-${rem.id}">
+          <input type="text" class="form-input" value="${esc(rem.label)}" id="rem-lbl-${rem.id}" placeholder="e.g. Morning tasks" style="flex:1;font-size:0.85rem;padding:7px 10px;">
+          <input type="number" class="form-input" value="${rem.hour}" id="rem-hr-${rem.id}" min="0" max="23" style="width:56px;text-align:center;font-size:0.85rem;padding:7px 6px;">
+          <span style="font-size:0.88rem;color:var(--muted);">:</span>
+          <input type="number" class="form-input" value="${String(rem.minute).padStart(2,'0')}" id="rem-min-${rem.id}" min="0" max="59" style="width:56px;text-align:center;font-size:0.85rem;padding:7px 6px;">
+          <label style="display:flex;align-items:center;gap:4px;cursor:pointer;">
+            <input type="checkbox" id="rem-on-${rem.id}" ${rem.active?'checked':''} onchange="doSaveReminder('${rem.id}')">
+            <span style="font-size:0.78rem;">On</span>
+          </label>
+          <button class="icon-btn" onclick="doDeleteReminder('${rem.id}')" title="Remove">🗑️</button>
+        </div>`).join('');
+
       return `<div class="section-pad" style="padding-top:4px;">
         <div class="card">
           <div class="card-title" style="margin-bottom:12px;">🏠 Family Motto</div>
@@ -1533,11 +1746,104 @@ const Views = {
           <button class="btn btn-primary btn-sm" onclick="doSaveParentPin()">Change PIN</button>
         </div>
 
+        <div class="card" style="border:1.5px solid #FFD166;">
+          <div class="card-title" style="margin-bottom:4px;">🔥 Streak Bonus</div>
+          <div class="card-desc" style="margin-bottom:12px;">Reward children who complete all their tasks for several days in a row.</div>
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
+            <span style="font-family:'Nunito',sans-serif;font-weight:700;font-size:0.88rem;">Enable streak bonus</span>
+            <label style="display:flex;align-items:center;gap:6px;cursor:pointer;">
+              <input type="checkbox" id="streak-enabled" ${sc.enabled?'checked':''} onchange="doSaveStreakConfig()" style="width:18px;height:18px;cursor:pointer;">
+            </label>
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+            <div>
+              <label class="form-label">Days required</label>
+              <input type="number" class="form-input" id="streak-days" value="${sc.requiredDays||7}" min="2" max="30" onchange="doSaveStreakConfig()" style="text-align:center;font-family:'Nunito',sans-serif;font-weight:800;font-size:1.1rem;">
+            </div>
+            <div>
+              <label class="form-label">Bonus ⭐ awarded</label>
+              <input type="number" class="form-input" id="streak-bonus" value="${sc.bonusStars||5}" min="1" max="100" onchange="doSaveStreakConfig()" style="text-align:center;font-family:'Nunito',sans-serif;font-weight:800;font-size:1.1rem;">
+            </div>
+          </div>
+        </div>
+
+        <div class="card" style="border:1.5px solid ${notifPerm==='granted'?'var(--green)':'var(--border)'};">
+          <div class="card-title" style="margin-bottom:4px;">🔔 Task Reminders</div>
+          <div class="card-desc" style="margin-bottom:10px;">
+            ${notifSupported
+              ? notifPerm === 'granted'
+                ? '✅ Notifications allowed — set daily reminder times below.'
+                : notifPerm === 'denied'
+                  ? '❌ Notifications are blocked. Please allow them in your browser settings, then reload.'
+                  : 'Click below to allow browser notifications.'
+              : '⚠️ This browser does not support notifications.'}
+          </div>
+          ${notifPerm !== 'granted' && notifSupported && notifPerm !== 'denied' ? `
+          <button class="btn btn-primary btn-sm" style="margin-bottom:12px;" onclick="requestNotifPermission()">🔔 Allow Notifications</button>` : ''}
+          ${notifPerm === 'granted' ? `
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
+            <span style="font-family:'Nunito',sans-serif;font-weight:700;font-size:0.88rem;">Reminders active</span>
+            <label style="display:flex;align-items:center;gap:6px;cursor:pointer;">
+              <input type="checkbox" id="notif-enabled" ${ns.enabled?'checked':''} onchange="doToggleNotif()" style="width:18px;height:18px;cursor:pointer;">
+            </label>
+          </div>
+          <div id="reminder-rows">${reminderRows}</div>
+          <button class="btn btn-ghost btn-sm" style="margin-top:6px;" onclick="doAddReminder()">+ Add reminder time</button>` : ''}
+        </div>
+
         <div class="card" style="background:linear-gradient(135deg,#FFF5F5,#FFF9F5);border:1px solid #FEE2E2;">
           <div class="card-title" style="color:var(--coral);margin-bottom:5px;">⚠️ Reset App Data</div>
           <div class="card-desc" style="margin-bottom:12px;">Restores demo data. All changes will be lost.</div>
           <button class="btn btn-danger btn-sm" onclick="doResetApp()">Reset to Demo</button>
         </div>
+      </div>`;
+    },
+
+    _history() {
+      const hist = State.data.approvalHistory || [];
+      const children = State.data.children;
+
+      const filterBtns = `
+        <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px;">
+          <button class="btn btn-ghost btn-sm" id="hf-all"     onclick="filterHistory('all')"    style="font-size:0.78rem;">All</button>
+          <button class="btn btn-ghost btn-sm" id="hf-task"    onclick="filterHistory('task')"   style="font-size:0.78rem;">✅ Tasks</button>
+          <button class="btn btn-ghost btn-sm" id="hf-request" onclick="filterHistory('request')" style="font-size:0.78rem;">📬 Requests</button>
+          <button class="btn btn-ghost btn-sm" id="hf-reward"  onclick="filterHistory('reward')" style="font-size:0.78rem;">🎁 Rewards</button>
+          <button class="btn btn-ghost btn-sm" id="hf-streak"  onclick="filterHistory('streak')" style="font-size:0.78rem;">🔥 Streaks</button>
+        </div>`;
+
+      if (!hist.length) return `
+        <div class="section-pad">
+          ${filterBtns}
+          <div class="empty-state">
+            <span class="empty-emoji">📜</span>
+            <h3>No history yet</h3>
+            <p>Approvals and verifications will appear here permanently</p>
+          </div>
+        </div>`;
+
+      const entries = hist.map(h => {
+        const child = h.childId ? State.getChild(h.childId) : null;
+        const childTag = child ? `<span style="font-size:0.8rem;color:var(--muted);">${child.emoji} ${esc(child.name)}</span>` : '';
+        const dt = new Date(h.ts);
+        const dateStr = dt.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: '2-digit' });
+        const timeStr = dt.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
+        return `<div class="history-entry type-${h.type}" data-htype="${h.type}">
+          <div class="history-entry-top">
+            <span class="history-entry-icon">${h.icon}</span>
+            <div style="flex:1">
+              <div class="history-entry-desc">${esc(h.description)}</div>
+              <div class="history-entry-time">${childTag}${child ? ' &nbsp;·&nbsp; ' : ''}${dateStr} at ${timeStr}</div>
+            </div>
+          </div>
+        </div>`;
+      }).join('');
+
+      return `<div class="section-pad">
+        ${filterBtns}
+        <div id="history-list">${entries}</div>
+        ${hist.length >= 50 ? `<div style="text-align:center;font-size:0.78rem;color:var(--muted);padding:8px 0;">Showing last ${hist.length} events (max 300)</div>` : ''}
+        <div class="spacer80"></div>
       </div>`;
     }
   },
@@ -1556,10 +1862,10 @@ const Views = {
       const pendingReqCount = State.data.requests.filter(r => r.childId === child.id && r.status === 'pending').length;
       const allVerified = tasks.length > 0 && tasks.every(({ comp }) => comp.status === 'verified');
 
-      const taskCards = tasks.map(({ task, comp }) => {
+      function renderTaskCard(task, comp) {
         const isAwaiting = comp.status === 'done-awaiting';
         const isVerified = comp.status === 'verified';
-        return `<div class="task-card ${comp.status === 'verified' ? 'verified' : ''} ${comp.status === 'done-awaiting' ? 'done-awaiting' : ''}">
+        return `<div class="task-card ${isVerified ? 'verified' : ''} ${isAwaiting ? 'done-awaiting' : ''}">
           <div class="task-card-header">
             <span class="task-cat-icon">${CAT_EMOJI[task.category]||'✨'}</span>
             <div class="task-card-info">
@@ -1579,7 +1885,28 @@ const Views = {
               <button class="btn btn-child btn-sm" onclick="doMarkTaskDone('${comp.id}','${child.id}')">✓ Mark Done</button>
             </div>` : ''}
         </div>`;
-      }).join('');
+      }
+
+      const slotOrder = ['morning','noon','evening','anytime'];
+      const grouped = {};
+      slotOrder.forEach(s => grouped[s] = []);
+      tasks.forEach(entry => {
+        const slot = entry.task.timeOfDay || 'anytime';
+        if (!grouped[slot]) grouped[slot] = [];
+        grouped[slot].push(entry);
+      });
+
+      let taskCards = '';
+      slotOrder.forEach(slot => {
+        if (!grouped[slot].length) return;
+        taskCards += `<div class="time-slot-header">${TIME_OF_DAY[slot].label}</div>`;
+        taskCards += grouped[slot].map(({ task, comp }) => renderTaskCard(task, comp)).join('');
+      });
+
+      const sc = State.data.streakConfig;
+      const streakBadge = sc && sc.enabled && (child.currentStreak || 0) > 0
+        ? `<div class="streak-badge">🔥 ${child.currentStreak}-day streak! ${child.currentStreak >= sc.requiredDays - 1 ? '🏆 Almost there!' : `${sc.requiredDays - child.currentStreak} more for +${sc.bonusStars}⭐`}</div>`
+        : '';
 
       document.getElementById('view-child-home').innerHTML = `
         <div class="child-header">
@@ -1618,9 +1945,10 @@ const Views = {
               <div class="progress-bar-white" style="width:${progress}%"></div>
             </div>
           </div>
+          ${streakBadge ? `<div style="margin-top:10px;">${streakBadge}</div>` : ''}
         </div>
 
-        <div style="padding:18px 16px 90px;">
+        <div style="padding:12px 16px 90px;">
           ${allVerified ? `
             <div class="empty-state">
               <span class="empty-emoji">🎉</span>
@@ -1631,9 +1959,7 @@ const Views = {
               <span class="empty-emoji">😊</span>
               <h3>No tasks today</h3>
               <p>Enjoy your free time!</p>
-            </div>` : `
-            <div class="section-title">📋 Today's Tasks</div>
-            ${taskCards}`}
+            </div>` : taskCards}
         </div>
 
         <button class="fab fab-child" onclick="Router.navigate('child-request-form',{childId:'${child.id}'})" title="Make a request">✉️</button>`;
@@ -1888,7 +2214,9 @@ function doVerifyTask(compId) {
   if (!task || !child) return;
   comp.status = 'verified';
   child.totalPoints += task.points;
+  logHistory('task', '✅', `Verified "${task.title}" for ${child.name} (+${task.points} ⭐)`, child.id);
   State.save();
+  checkStreakForChild(child.id);
   showToast(`⭐ ${child.name} earned ${task.points} star${task.points > 1 ? 's' : ''}!`);
   switchTab(Views['parent-dashboard']._tab);
 }
@@ -1946,6 +2274,15 @@ function _taskModalHTML(task) {
       <input type="hidden" id="tm-points" value="${t.points||2}">
     </div>
     <div class="form-group">
+      <label class="form-label">Time of day</label>
+      <select class="form-select" id="tm-tod">
+        <option value="morning" ${(t.timeOfDay||'anytime')==='morning'?'selected':''}>🌅 Morning</option>
+        <option value="noon"    ${(t.timeOfDay||'anytime')==='noon'   ?'selected':''}>☀️ Noon</option>
+        <option value="evening" ${(t.timeOfDay||'anytime')==='evening'?'selected':''}>🌙 Evening</option>
+        <option value="anytime" ${(!t.timeOfDay||t.timeOfDay==='anytime')?'selected':''}>✨ Anytime</option>
+      </select>
+    </div>
+    <div class="form-group">
       <label class="form-label">Due time (optional)</label>
       <input type="text" class="form-input" id="tm-due" value="${esc(t.dueTime||'')}" placeholder="e.g. before dinner">
     </div>`;
@@ -1981,6 +2318,7 @@ function doSaveTask(editId) {
     assignedTo:  document.getElementById('tm-assign').value,
     recurrence:  document.getElementById('tm-rec').value,
     points:      parseInt(document.getElementById('tm-points').value) || 2,
+    timeOfDay:   document.getElementById('tm-tod').value || 'anytime',
     dueTime:     document.getElementById('tm-due').value.trim()
   };
   if (editId) {
@@ -2011,6 +2349,8 @@ function doApproveRequest(reqId) {
   const rt = document.getElementById('rt-' + reqId);
   req.status = 'approved';
   if (rt) req.reply = rt.value.trim();
+  const child = State.getChild(req.childId);
+  logHistory('request', '📬', `Approved request "${req.title}"${child ? ' for ' + child.name : ''}`, req.childId);
   State.save();
   showToast('✅ Request approved!');
   switchTab('requests');
@@ -2152,6 +2492,62 @@ function doResetApp() {
   State.seed();
   showToast('🔄 Reset to demo data');
   switchTab('tasks');
+}
+
+function doSaveStreakConfig() {
+  const enabled = document.getElementById('streak-enabled') && document.getElementById('streak-enabled').checked;
+  const days    = parseInt(document.getElementById('streak-days')  && document.getElementById('streak-days').value)  || 7;
+  const bonus   = parseInt(document.getElementById('streak-bonus') && document.getElementById('streak-bonus').value) || 5;
+  State.data.streakConfig = { enabled, requiredDays: Math.max(2, days), bonusStars: Math.max(1, bonus) };
+  State.save();
+  showToast(enabled ? `🔥 Streak bonus enabled: ${days} days → +${bonus} ⭐` : 'Streak bonus disabled');
+}
+
+function doToggleNotif() {
+  const cb = document.getElementById('notif-enabled');
+  if (!cb) return;
+  State.data.notificationSettings.enabled = cb.checked;
+  State.save();
+  showToast(cb.checked ? '🔔 Reminders active' : '🔕 Reminders paused');
+}
+
+function doAddReminder() {
+  if (!State.data.notificationSettings.reminders) State.data.notificationSettings.reminders = [];
+  State.data.notificationSettings.reminders.push({ id: genId(), label: 'Task reminder', hour: 18, minute: 0, active: true });
+  State.save();
+  switchTab('settings');
+}
+
+function doSaveReminder(remId) {
+  const rem = (State.data.notificationSettings.reminders || []).find(r => r.id === remId);
+  if (!rem) return;
+  const lbl = document.getElementById('rem-lbl-' + remId);
+  const hr  = document.getElementById('rem-hr-'  + remId);
+  const min = document.getElementById('rem-min-' + remId);
+  const on  = document.getElementById('rem-on-'  + remId);
+  if (lbl) rem.label  = lbl.value.trim() || 'Task reminder';
+  if (hr)  rem.hour   = Math.min(23, Math.max(0, parseInt(hr.value)  || 0));
+  if (min) rem.minute = Math.min(59, Math.max(0, parseInt(min.value) || 0));
+  if (on)  rem.active = on.checked;
+  State.save();
+  showToast('🔔 Reminder saved');
+}
+
+function doDeleteReminder(remId) {
+  State.data.notificationSettings.reminders = (State.data.notificationSettings.reminders || []).filter(r => r.id !== remId);
+  State.save();
+  switchTab('settings');
+}
+
+function filterHistory(type) {
+  const list = document.getElementById('history-list');
+  if (!list) return;
+  list.querySelectorAll('.history-entry').forEach(el => {
+    el.style.display = (type === 'all' || el.dataset.htype === type) ? '' : 'none';
+  });
+  document.querySelectorAll('[id^="hf-"]').forEach(b => b.classList.remove('btn-primary'));
+  const active = document.getElementById('hf-' + type);
+  if (active) active.classList.add('btn-primary');
 }
 
 /* --- CHILD REQUEST FORM --- */
@@ -2463,6 +2859,7 @@ function doApproveGroupReward(rdId) {
   });
   rd.status = 'approved';
   rd.resolvedAt = Date.now();
+  logHistory('reward', '🎡', `Approved family reward "${rw.title}" — goal reached together!`, null);
   State.save();
   spawnConfetti();
   showToast(`🎉 Family reward approved! "${rw.title}" unlocked!`);
@@ -2492,6 +2889,7 @@ function doApproveRedemption(rdId) {
   rd.status = 'approved';
   rd.resolvedAt = Date.now();
   child.totalPoints -= rw.cost;
+  logHistory('reward', '🎁', `Approved reward "${rw.title}" for ${child.name} (−${rw.cost} ⭐)`, child.id);
   State.save();
   showToast(`✅ Approved! ${child.emoji} ${child.name} spent ${rw.cost} ⭐ on "${rw.title}"`);
   switchTab('rewards');
@@ -2511,9 +2909,10 @@ function doRejectRedemption(rdId) {
 /* =====================================================================
    BOOT
 ===================================================================== */
-document.addEventListener('DOMContentLoaded', function() {
-  State.load();
+document.addEventListener('DOMContentLoaded', async function() {
+  await State.load();
   Router.navigate('home');
+  startNotificationChecker();
 });
 </script>
 </body>
