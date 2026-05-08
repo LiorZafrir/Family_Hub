@@ -3453,19 +3453,22 @@ const MashovAPI = {
 
   /* Homework: returns [{lessonId, lessonDate, subjectName, homework}] */
   async getHomework(acc, from, to) {
-    const uid = Number(acc.mashovUserId); // Mashov expects numeric ID
+    const uid = acc.mashovUserId;
+    if (!uid || String(uid).includes('-')) throw new Error('מזהה תלמיד לא תקין — נתק וחבר מחדש');
     return this._authGet(`/students/${uid}/homework?from=${from}&to=${to}`, acc);
   },
 
   /* Grades: returns [{subjectName, grade, eventDate, type}] */
   async getGrades(acc) {
-    const uid = Number(acc.mashovUserId);
+    const uid = acc.mashovUserId;
+    if (!uid || String(uid).includes('-')) throw new Error('מזהה תלמיד לא תקין — נתק וחבר מחדש');
     return this._authGet(`/students/${uid}/grades`, acc);
   },
 
   /* Attendance: returns [{lessonDate, subjectName, status}] */
   async getAttendance(acc, from, to) {
-    const uid = Number(acc.mashovUserId);
+    const uid = acc.mashovUserId;
+    if (!uid || String(uid).includes('-')) throw new Error('מזהה תלמיד לא תקין — נתק וחבר מחדש');
     return this._authGet(`/students/${uid}/attendance?from=${from}&to=${to}`, acc);
   },
 
