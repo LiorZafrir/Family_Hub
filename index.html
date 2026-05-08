@@ -1894,55 +1894,87 @@ const Views = {
         </div>`;
       };
 
-      /* When showing Mashov homework — collapsible category + collapsible subjects */
+      /* When showing Mashov homework — per-child star picker + collapsible subjects */
       let cards;
       if (tf === 'mashov') {
-        const bySubject = {};
+        const gid = () => 'g' + Math.random().toString(36).slice(2,7);
+
+        /* Group tasks by child first, then by subject within each child */
+        const byChild = {};
         tasks.forEach(task => {
+          const cid = task.assignedTo;
+          if (!byChild[cid]) byChild[cid] = {};
           const subj = task.title.includes(':') ? task.title.split(':')[0].trim() : (_lang==='he'?'כללי':'General');
-          if (!bySubject[subj]) bySubject[subj] = [];
-          bySubject[subj].push(task);
+          if (!byChild[cid][subj]) byChild[cid][subj] = [];
+          byChild[cid][subj].push(task);
         });
 
-        const gid = () => 'g' + Math.random().toString(36).slice(2,7);
-        const catId = gid();
+        const childBlocks = Object.entries(byChild).map(([cid, subjMap]) => {
+          const child = State.getChild(cid);
+          const acc   = MashovCreds.get(cid);
+          const bonus = acc?.hwBonus ?? 3;
+          const childTaskCount = Object.values(subjMap).reduce((s,a)=>s+a.length, 0);
+          const childId_safe = gid();
 
-        const subjGroups = Object.entries(bySubject)
-          .sort(([a],[b]) => a.localeCompare(b, 'he'))
-          .map(([subj, subjTasks], i) => {
-            const sid = gid();
-            const sorted = subjTasks.sort((a,b) => (a.dueTime||'').localeCompare(b.dueTime||''));
-            const isOpen = i === 0;
-            return `
-              <div style="margin-bottom:4px;">
-                <button onclick="(function(b,c){var o=c.style.display==='none';c.style.display=o?'block':'none';b.querySelector('.hw-arr').textContent=o?'▼':'▶';})(this,document.getElementById('${sid}'))"
-                  style="width:100%;display:flex;align-items:center;gap:8px;background:var(--light);
-                         border:none;border-radius:var(--radius-sm);padding:9px 12px;cursor:pointer;
-                         font-family:'Nunito',sans-serif;font-weight:700;font-size:0.92rem;color:var(--text);
-                         border-inline-start:3px solid var(--blue);text-align:inherit;">
-                  <span class="hw-arr">${isOpen?'▼':'▶'}</span>
-                  📖 ${esc(subj)}
-                  <span style="margin-inline-start:auto;font-size:0.75rem;color:var(--muted);">(${subjTasks.length})</span>
-                </button>
-                <div id="${sid}" style="display:${isOpen?'block':'none'};padding:4px 0 4px 8px;">
-                  ${sorted.map(renderCard).join('')}
+          /* Subject groups inside this child's block */
+          const subjGroups = Object.entries(subjMap)
+            .sort(([a],[b]) => a.localeCompare(b, 'he'))
+            .map(([subj, subjTasks], i) => {
+              const sid = gid();
+              const sorted = subjTasks.sort((a,b) => (a.dueTime||'').localeCompare(b.dueTime||''));
+              return `
+                <div style="margin-bottom:4px;">
+                  <button onclick="(function(b,c){var o=c.style.display==='none';c.style.display=o?'block':'none';b.querySelector('.hw-arr').textContent=o?'▼':'▶';})(this,document.getElementById('${sid}'))"
+                    style="width:100%;display:flex;align-items:center;gap:8px;background:var(--light);
+                           border:none;border-radius:var(--radius-sm);padding:9px 12px;cursor:pointer;
+                           font-family:'Nunito',sans-serif;font-weight:700;font-size:0.92rem;color:var(--text);
+                           border-inline-start:3px solid var(--blue);text-align:inherit;">
+                    <span class="hw-arr">${i===0?'▼':'▶'}</span>
+                    📖 ${esc(subj)}
+                    <span style="margin-inline-start:auto;font-size:0.75rem;color:var(--muted);">(${subjTasks.length})</span>
+                  </button>
+                  <div id="${sid}" style="display:${i===0?'block':'none'};padding:4px 0 4px 8px;">
+                    ${sorted.map(renderCard).join('')}
+                  </div>
+                </div>`;
+            }).join('');
+
+          return `
+            <div style="margin-bottom:12px;background:var(--card);border-radius:var(--radius);box-shadow:var(--shadow-sm);overflow:hidden;">
+              <!-- Child header row: emoji + name + star picker + count -->
+              <div style="display:flex;align-items:center;gap:10px;padding:12px 14px;
+                          background:linear-gradient(135deg,#DBEAFE,#EFF6FF);
+                          border-bottom:1px solid #BFDBFE;">
+                <span style="font-size:1.15rem;font-weight:800;font-family:'Nunito',sans-serif;color:#1D4ED8;">
+                  ${child ? child.emoji+' '+esc(child.name) : '👤'}
+                </span>
+                <!-- Star picker — saves immediately -->
+                <div class="star-picker" id="hw-stars-${cid}" style="margin-inline-start:4px;">
+                  ${[1,2,3,4,5].map(n=>`<button type="button" class="star-pick-btn${n<=bonus?' filled':''}"
+                    onclick="setChildHwBonus('${cid}',${n})">★</button>`).join('')}
                 </div>
-              </div>`;
-          }).join('');
+                <span style="margin-inline-start:auto;font-size:0.75rem;color:#3B82F6;font-weight:600;">
+                  ${childTaskCount} ${_lang==='he'?'שיעורים':'tasks'}
+                </span>
+                <button onclick="(function(b,c){var o=c.style.display==='none';c.style.display=o?'block':'none';b.textContent=o?'▼':'▶';})(this,document.getElementById('${childId_safe}'))"
+                  style="background:none;border:none;cursor:pointer;font-size:1rem;color:#1D4ED8;padding:2px 4px;">▼</button>
+              </div>
+              <div id="${childId_safe}" style="padding:8px 10px;">
+                ${subjGroups}
+              </div>
+            </div>`;
+        }).join('');
 
-        const isAllOpen = true;
         cards = `
-          <button onclick="(function(b,c){var o=c.style.display==='none';c.style.display=o?'block':'none';b.querySelector('.hw-arr').textContent=o?'▼':'▶';})(this,document.getElementById('${catId}'))"
-            style="width:100%;display:flex;align-items:center;gap:8px;
-                   background:linear-gradient(135deg,#DBEAFE,#EFF6FF);
-                   border:none;border-radius:var(--radius-sm);padding:12px 14px;cursor:pointer;
-                   font-family:'Nunito',sans-serif;font-weight:800;font-size:1.05rem;color:#1D4ED8;
-                   text-align:inherit;margin-bottom:8px;">
-            <span class="hw-arr">▼</span>
+          <div style="background:linear-gradient(135deg,#DBEAFE,#EFF6FF);border-radius:var(--radius-sm);
+                      padding:10px 14px;margin-bottom:10px;
+                      font-family:'Nunito',sans-serif;font-weight:800;font-size:1rem;color:#1D4ED8;">
             🏫 ${_lang==='he'?'שיעורי בית':'Homework'}
-            <span style="margin-inline-start:auto;font-size:0.78rem;font-weight:600;">${tasks.length} ${_lang==='he'?'משימות':'tasks'}</span>
-          </button>
-          <div id="${catId}">${subjGroups}</div>`;
+            <span style="font-weight:400;font-size:0.8rem;margin-inline-start:8px;">
+              — ${_lang==='he'?'בחר כוכבים לכל ילד':'Set stars per child'}
+            </span>
+          </div>
+          ${childBlocks}`;
       } else {
         cards = tasks.map(renderCard).join('');
       }
@@ -2899,6 +2931,16 @@ function selectTaskPoints(n) {
 function selectMashovHwBonus(n) {
   document.getElementById('msh-hwbonus').value = n;
   document.querySelectorAll('#msh-hw-stars .star-pick-btn').forEach((b, i) => b.classList.toggle('filled', i < n));
+}
+
+/* Save hwBonus directly from the tasks tab star picker */
+function setChildHwBonus(childId, n) {
+  const acc = MashovCreds.get(childId);
+  if (!acc) return;
+  acc.hwBonus = n;
+  MashovCreds.set(acc);
+  const picker = document.getElementById('hw-stars-' + childId);
+  if (picker) picker.querySelectorAll('.star-pick-btn').forEach((b, i) => b.classList.toggle('filled', i < n));
 }
 
 function doSaveTask(editId) {
