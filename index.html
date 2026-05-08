@@ -2377,10 +2377,15 @@ const Views = {
         </div>`;
       }
 
+      /* Separate Mashov homework from regular tasks */
+      const mashovEntries  = tasks.filter(e => e.task.source === 'mashov');
+      const regularEntries = tasks.filter(e => e.task.source !== 'mashov');
+
+      /* Regular tasks — grouped by time of day */
       const slotOrder = ['morning','noon','evening','anytime'];
       const grouped = {};
       slotOrder.forEach(s => grouped[s] = []);
-      tasks.forEach(entry => {
+      regularEntries.forEach(entry => {
         const slot = entry.task.timeOfDay || 'anytime';
         if (!grouped[slot]) grouped[slot] = [];
         grouped[slot].push(entry);
@@ -2392,6 +2397,57 @@ const Views = {
         taskCards += `<div class="time-slot-header">${t('tod'+slot.charAt(0).toUpperCase()+slot.slice(1))}</div>`;
         taskCards += grouped[slot].map(({ task, comp }) => renderTaskCard(task, comp)).join('');
       });
+
+      /* Mashov homework — collapsible section grouped by subject */
+      if (mashovEntries.length) {
+        const bySubj = {};
+        mashovEntries.forEach(({ task, comp }) => {
+          const subj = task.title.includes(':') ? task.title.split(':')[0].trim() : '📚';
+          if (!bySubj[subj]) bySubj[subj] = [];
+          bySubj[subj].push({ task, comp });
+        });
+
+        const gid = () => 'ch' + Math.random().toString(36).slice(2,7);
+        const catId = gid();
+        const doneCount = mashovEntries.filter(e => e.comp.status === 'verified' || e.comp.status === 'done-awaiting').length;
+
+        const subjHtml = Object.entries(bySubj)
+          .sort(([a],[b]) => a.localeCompare(b,'he'))
+          .map(([subj, entries], i) => {
+            const sid = gid();
+            const subjDone = entries.filter(e => e.comp.status === 'verified' || e.comp.status === 'done-awaiting').length;
+            return `
+              <div style="margin-bottom:4px;">
+                <button onclick="(function(b,c){var o=c.style.display==='none';c.style.display=o?'block':'none';b.querySelector('.hw-arr').textContent=o?'▼':'▶';})(this,document.getElementById('${sid}'))"
+                  style="width:100%;display:flex;align-items:center;gap:8px;background:var(--light);
+                         border:none;border-radius:var(--radius-sm);padding:9px 12px;cursor:pointer;
+                         font-family:'Nunito',sans-serif;font-weight:700;font-size:0.9rem;color:var(--text);
+                         border-inline-start:3px solid var(--teal);text-align:inherit;">
+                  <span class="hw-arr">${i===0?'▼':'▶'}</span>
+                  📖 ${esc(subj)}
+                  <span style="margin-inline-start:auto;font-size:0.72rem;color:var(--muted);">${subjDone}/${entries.length} ✓</span>
+                </button>
+                <div id="${sid}" style="display:${i===0?'block':'none'};padding:4px 0 4px 8px;">
+                  ${entries.sort((a,b)=>(a.task.dueTime||'').localeCompare(b.task.dueTime||'')).map(({task,comp})=>renderTaskCard(task,comp)).join('')}
+                </div>
+              </div>`;
+          }).join('');
+
+        taskCards += `
+          <div style="margin-top:4px;">
+            <button onclick="(function(b,c){var o=c.style.display==='none';c.style.display=o?'block':'none';b.querySelector('.hw-arr').textContent=o?'▼':'▶';})(this,document.getElementById('${catId}'))"
+              style="width:100%;display:flex;align-items:center;gap:8px;
+                     background:linear-gradient(135deg,#DBEAFE,#EFF6FF);
+                     border:none;border-radius:var(--radius-sm);padding:11px 14px;cursor:pointer;
+                     font-family:'Nunito',sans-serif;font-weight:800;font-size:1rem;color:#1D4ED8;
+                     text-align:inherit;margin-bottom:6px;">
+              <span class="hw-arr">▼</span>
+              🏫 ${_lang==='he'?'שיעורי בית':'Homework'}
+              <span style="margin-inline-start:auto;font-size:0.78rem;font-weight:600;">${doneCount}/${mashovEntries.length} ✓</span>
+            </button>
+            <div id="${catId}">${subjHtml}</div>
+          </div>`;
+      }
 
       const sc = State.data.streakConfig;
       const streakBadge = sc && sc.enabled && (child.currentStreak || 0) > 0
