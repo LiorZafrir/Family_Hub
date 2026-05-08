@@ -3453,23 +3453,17 @@ const MashovAPI = {
 
   /* Homework: returns [{lessonId, lessonDate, subjectName, homework}] */
   async getHomework(acc, from, to) {
-    const uid = acc.mashovUserId;
-    if (!uid || String(uid).includes('-')) throw new Error('מזהה תלמיד לא תקין — נתק וחבר מחדש');
-    return this._authGet(`/students/${uid}/homework?from=${from}&to=${to}`, acc);
+    return this._authGet(`/students/${acc.mashovUserId}/homework?from=${from}&to=${to}`, acc);
   },
 
   /* Grades: returns [{subjectName, grade, eventDate, type}] */
   async getGrades(acc) {
-    const uid = acc.mashovUserId;
-    if (!uid || String(uid).includes('-')) throw new Error('מזהה תלמיד לא תקין — נתק וחבר מחדש');
-    return this._authGet(`/students/${uid}/grades`, acc);
+    return this._authGet(`/students/${acc.mashovUserId}/grades`, acc);
   },
 
   /* Attendance: returns [{lessonDate, subjectName, status}] */
   async getAttendance(acc, from, to) {
-    const uid = acc.mashovUserId;
-    if (!uid || String(uid).includes('-')) throw new Error('מזהה תלמיד לא תקין — נתק וחבר מחדש');
-    return this._authGet(`/students/${uid}/attendance?from=${from}&to=${to}`, acc);
+    return this._authGet(`/students/${acc.mashovUserId}/attendance?from=${from}&to=${to}`, acc);
   },
 
   /* Sync one child: imports homework, saves grades+attendance to Firebase */
