@@ -3492,8 +3492,15 @@ const MashovAPI = {
 
     /* ---- Homework → Tasks ---- */
     try {
-      const hw = await this.getHomework(acc, from, to);
-      console.log('[Mashov] homework raw sample:', JSON.stringify((hw||[]).slice(0,2)));
+      const hwRaw = await this.getHomework(acc, from, to);
+      /* Handle possible wrapper objects: { data:[...] } or { homework:[...] } etc. */
+      const hw = Array.isArray(hwRaw) ? hwRaw
+               : Array.isArray(hwRaw?.data) ? hwRaw.data
+               : Array.isArray(hwRaw?.homework) ? hwRaw.homework
+               : Array.isArray(hwRaw?.items) ? hwRaw.items
+               : [];
+      console.log('[Mashov] homework response type:', typeof hwRaw, Array.isArray(hwRaw) ? 'array len='+hwRaw.length : JSON.stringify(hwRaw).slice(0,300));
+      console.log('[Mashov] homework first item keys:', hw.length ? Object.keys(hw[0]).join(', ') : 'EMPTY');
       (hw || []).forEach(item => {
         const text = hwText(item);
         if (!text) return;
