@@ -801,6 +801,49 @@
     }
     .lang-btn.active { background: white; color: var(--coral); }
 
+    /* ===== MASHOV STYLES ===== */
+    .mashov-child-row {
+      display: flex; align-items: center; gap: 10px;
+      padding: 10px 0; border-bottom: 1px solid var(--border);
+    }
+    .mashov-child-row:last-child { border-bottom: none; }
+    .mashov-child-info { flex: 1; min-width: 0; }
+    .mashov-child-name { font-family: 'Nunito', sans-serif; font-weight: 700; font-size: 0.9rem; }
+    .mashov-status { font-size: 0.75rem; color: var(--muted); margin-top: 2px; }
+    .mashov-status.connected { color: var(--green); }
+    .mashov-actions { display: flex; gap: 5px; flex-shrink: 0; }
+    .mashov-data-panel {
+      background: linear-gradient(135deg, #EFF6FF, #F0FDF4);
+      border: 1px solid #BFDBFE;
+      border-radius: var(--radius-sm);
+      padding: 10px 12px;
+      margin-top: 8px;
+      font-size: 0.78rem;
+    }
+    .mashov-data-title { font-family: 'Nunito', sans-serif; font-weight: 700; font-size: 0.8rem; color: #1D4ED8; margin-bottom: 5px; }
+    .mashov-grade-chips { display: flex; gap: 5px; flex-wrap: wrap; margin-bottom: 6px; }
+    .mashov-grade-chip {
+      background: white; border: 1px solid #BFDBFE;
+      border-radius: 50px; padding: 2px 8px;
+      font-family: 'Nunito', sans-serif; font-weight: 700; font-size: 0.75rem;
+    }
+    .mashov-grade-chip.high { border-color: var(--green); color: #15803D; }
+    .mashov-grade-chip.mid  { border-color: var(--yellow); color: #A16207; }
+    .mashov-grade-chip.low  { border-color: var(--coral); color: #DC2626; }
+    .school-autocomplete { position: relative; }
+    .school-dropdown {
+      position: absolute; top: 100%; left: 0; right: 0; z-index: 100;
+      background: white; border: 1.5px solid var(--border); border-radius: var(--radius-sm);
+      box-shadow: var(--shadow); max-height: 200px; overflow-y: auto;
+    }
+    .school-dropdown-item {
+      padding: 9px 12px; cursor: pointer; font-size: 0.85rem;
+      border-bottom: 1px solid var(--border);
+      transition: background 0.15s;
+    }
+    .school-dropdown-item:last-child { border-bottom: none; }
+    .school-dropdown-item:hover { background: var(--light); }
+
     /* ===== RTL SUPPORT ===== */
     #app[dir="rtl"] { font-family: 'Nunito', 'DM Sans', sans-serif; }
     #app[dir="rtl"] .view-header { flex-direction: row-reverse; }
@@ -1033,6 +1076,20 @@ const STRINGS = {
     yourContrib:'Your contribution (you have {n} ⭐)',
     confirmContrib:'⭐ Confirm Contribution',
     noContribYet:'No contributions yet',
+    mashovSection:'📚 Mashov Connection', mashovConnect:'+ Connect Account',
+    mashovConnected:'✅ Connected', mashovNotConnected:'Not connected',
+    mashovLastSync:'Last sync:', mashovSync:'🔄 Sync', mashovDisconnect:'🗑️ Disconnect',
+    mashovSchool:'School name', mashovSchoolPlaceholder:'Type school name...',
+    mashovUserId:'Student ID', mashovPassword:'Password',
+    mashovYear:'School year', mashovTestLogin:'Connect & Test',
+    mashovLoginOk:'✅ Connected successfully!', mashovLoginFail:'❌ Login failed — check credentials',
+    mashovSyncing:'⏳ Syncing from Mashov...', mashovSyncDone:'✅ Sync complete',
+    mashovImported:'📚 {n} homework tasks imported',
+    mashovNoNew:'No new homework found',
+    mashovGrades:'Recent grades', mashovAttendance:'Attendance this week',
+    mashovCorsNote:'Data passes through corsproxy.io (external CORS proxy)',
+    mashovSelectSchool:'Select school from list',
+    mashovSearching:'Searching...',
   },
   he: {
     appTitle:'Family Hub', whoAreYou:'?מי אתה', iAmParent:'אני הורה 🔑',
@@ -1105,6 +1162,20 @@ const STRINGS = {
     yourContrib:'התרומה שלך (יש לך {n} ⭐)',
     confirmContrib:'✓ אשר תרומה ⭐',
     noContribYet:'אין תרומות עדיין',
+    mashovSection:'📚 חיבור למשוב', mashovConnect:'+ חבר חשבון',
+    mashovConnected:'✅ מחובר', mashovNotConnected:'לא מחובר',
+    mashovLastSync:'סנכרון אחרון:', mashovSync:'🔄 סנכרן', mashovDisconnect:'🗑️ נתק',
+    mashovSchool:'שם בית הספר', mashovSchoolPlaceholder:'הקלד שם בית ספר...',
+    mashovUserId:'תעודת זהות', mashovPassword:'סיסמה',
+    mashovYear:'שנת לימודים', mashovTestLogin:'התחבר ובדוק',
+    mashovLoginOk:'✅ ההתחברות הצליחה!', mashovLoginFail:'❌ כניסה נכשלה — בדוק פרטים',
+    mashovSyncing:'⏳ מסנכרן ממשוב...', mashovSyncDone:'✅ הסנכרון הושלם',
+    mashovImported:'📚 יובאו {n} שיעורי בית',
+    mashovNoNew:'לא נמצאו שיעורי בית חדשים',
+    mashovGrades:'ציונים אחרונים', mashovAttendance:'נוכחות השבוע',
+    mashovCorsNote:'הנתונים עוברים דרך corsproxy.io (שרת CORS חיצוני)',
+    mashovSelectSchool:'בחר בית ספר מהרשימה',
+    mashovSearching:'מחפש...',
   }
 };
 
@@ -1738,6 +1809,7 @@ const Views = {
           <div class="task-card-meta">
             <span class="badge badge-${task.category}">${catLabel(task.category)}</span>
             <span class="badge badge-${task.recurrence}">${{daily:t('recDaily'),weekly:t('recWeekly'),'one-time':t('recOneTime')}[task.recurrence]||task.recurrence}</span>
+            ${task.source==='mashov'?'<span style="font-size:0.72rem;background:#DBEAFE;color:#1D4ED8;border-radius:50px;padding:1px 7px;font-weight:700;">🏫 Mashov</span>':''}
             <span style="font-size:0.78rem;color:var(--muted);">👤 ${assigneeName}</span>
             ${starsHTML(task.points)}
           </div>
@@ -1824,6 +1896,26 @@ const Views = {
         ${children.map(child => {
           const totalTasks = State.data.tasks.filter(t => t.assignedTo === 'all' || t.assignedTo === child.id).length;
           const verifiedToday = State.data.taskCompletions.filter(c => c.childId === child.id && c.status === 'verified' && c.date === todayStr).length;
+          /* --- Mashov data panel --- */
+          const mashovD = (State.data.mashovData || {})[child.id];
+          let mashovPanel = '';
+          if (mashovD) {
+            const grades = (mashovD.grades || []).slice(0, 5);
+            const absences = (mashovD.attendance || []).filter(a => a.status && a.status !== 'נוכח').slice(0, 3);
+            const gradeChips = grades.map(g => {
+              const cls = g.grade >= 80 ? 'high' : g.grade >= 60 ? 'mid' : 'low';
+              return `<span class="mashov-grade-chip ${cls}">${esc(g.subjectName.slice(0,8))} ${g.grade}</span>`;
+            }).join('');
+            const attendText = absences.length
+              ? absences.map(a => `${a.date.slice(5)} ${esc(a.lesson.slice(0,8))}`).join(' · ')
+              : (_lang==='he'?'✅ נוכחות מלאה':'✅ Full attendance');
+            mashovPanel = `<div class="mashov-data-panel">
+              <div class="mashov-data-title">📊 ${_lang==='he'?'נתוני משוב':'Mashov data'}</div>
+              ${gradeChips ? `<div style="font-size:0.72rem;color:var(--muted);margin-bottom:4px;">${t('mashovGrades')}:</div><div class="mashov-grade-chips">${gradeChips}</div>` : ''}
+              <div style="font-size:0.72rem;color:var(--muted);">${t('mashovAttendance')}: ${attendText}</div>
+            </div>`;
+          }
+
           return `<div class="child-stat-card">
             <div class="child-stat-header">
               <span class="child-stat-emoji">${child.emoji}</span>
@@ -1836,7 +1928,8 @@ const Views = {
             <div style="font-size:0.8rem;color:var(--muted);margin-bottom:10px;">
               ${totalTasks} ${t('tasksAssigned')} &nbsp;·&nbsp; ${verifiedToday} ${t('verifiedToday')}
             </div>
-            <div class="task-card-actions">
+            ${mashovPanel}
+            <div class="task-card-actions" style="margin-top:${mashovPanel?'10px':'0'}">
               <button class="btn btn-ghost btn-sm" onclick="openEditChild('${child.id}')">${t('editBtn')}</button>
               <button class="btn btn-danger btn-sm" onclick="doRemoveChild('${child.id}')">${t('removeBtn')}</button>
             </div>
@@ -2033,6 +2126,42 @@ const Views = {
           <button class="btn btn-ghost btn-sm" style="margin-top:6px;" onclick="doAddReminder()">${t('addReminder')}</button>` : ''}
         </div>
 
+        <!-- MASHOV SECTION -->
+        <div class="card" style="border:1.5px solid #BFDBFE;">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
+            <div class="card-title" style="margin:0;">${t('mashovSection')}</div>
+            <button class="btn btn-ghost btn-sm" onclick="openMashovWorkerModal()" style="font-size:0.72rem;">⚙️ Worker</button>
+          </div>
+          ${State.data.children.map(child => {
+            const acc = MashovCreds.get(child.id);
+            const connected = !!(acc && acc.mashovUserId);
+            const lastSync = acc && acc.lastSync
+              ? formatDate(acc.lastSync)
+              : '';
+            return `<div class="mashov-child-row">
+              <span style="font-size:1.3rem;">${child.emoji}</span>
+              <div class="mashov-child-info">
+                <div class="mashov-child-name">${esc(child.name)}</div>
+                <div class="mashov-status ${connected?'connected':''}">
+                  ${connected
+                    ? `${t('mashovConnected')}${lastSync?' · '+t('mashovLastSync')+' '+lastSync:''}`
+                    : t('mashovNotConnected')}
+                </div>
+              </div>
+              <div class="mashov-actions">
+                ${connected ? `
+                  <button class="btn btn-ghost btn-sm" onclick="doMashovSync('${child.id}')">${t('mashovSync')}</button>
+                  <button class="btn btn-ghost btn-sm" onclick="openMashovConnectModal('${child.id}')" title="Edit">✏️</button>
+                  <button class="icon-btn" onclick="doMashovDisconnect('${child.id}')" title="Disconnect">🗑️</button>
+                ` : `
+                  <button class="btn btn-primary btn-sm" onclick="openMashovConnectModal('${child.id}')">${t('mashovConnect')}</button>
+                `}
+              </div>
+            </div>`;
+          }).join('')}
+          <div style="font-size:0.68rem;color:var(--muted);margin-top:8px;text-align:center;">${t('mashovCorsNote')}</div>
+        </div>
+
         <div class="card" style="background:linear-gradient(135deg,#FFF5F5,#FFF9F5);border:1px solid #FEE2E2;">
           <div class="card-title" style="color:var(--coral);margin-bottom:5px;">${t('resetTitle')}</div>
           <div class="card-desc" style="margin-bottom:12px;">${t('resetDesc')}</div>
@@ -2118,7 +2247,8 @@ const Views = {
             ${starsHTML(task.points)}
           </div>
           <div class="task-card-meta">
-            <span class="badge badge-${task.category}">${task.category}</span>
+            <span class="badge badge-${task.category}">${catLabel(task.category)}</span>
+            ${task.source==='mashov'?'<span style="font-size:0.72rem;background:#DBEAFE;color:#1D4ED8;border-radius:50px;padding:1px 7px;font-weight:700;">🏫</span>':''}
             ${isVerified ? `<span class="badge badge-verified">${t('verifiedBadge')}</span>` : ''}
             ${isAwaiting ? `<span class="badge badge-done-awaiting">${t('awaitingApproval')}</span>` : ''}
           </div>
@@ -3148,6 +3278,387 @@ function doRejectRedemption(rdId) {
   State.save();
   showToast(_lang==='he'?'המימוש נדחה':'Redemption rejected');
   switchTab('rewards');
+}
+
+/* =====================================================================
+   MASHOV INTEGRATION
+===================================================================== */
+
+/* --- Credentials (localStorage only, never Firebase) --- */
+const MashovCreds = {
+  _key: 'mashovCreds',
+  load() {
+    try { return JSON.parse(localStorage.getItem(this._key) || '{"accounts":[],"workerUrl":""}'); }
+    catch(e) { return { accounts: [], workerUrl: '' }; }
+  },
+  save(d) { localStorage.setItem(this._key, JSON.stringify(d)); },
+  get(childId) { return this.load().accounts.find(a => a.childId === childId); },
+  set(acc) {
+    const d = this.load();
+    const i = d.accounts.findIndex(a => a.childId === acc.childId);
+    i >= 0 ? d.accounts[i] = acc : d.accounts.push(acc);
+    this.save(d);
+  },
+  remove(childId) {
+    const d = this.load();
+    d.accounts = d.accounts.filter(a => a.childId !== childId);
+    this.save(d);
+  },
+  getWorkerUrl() { return (this.load().workerUrl || '').trim(); },
+  setWorkerUrl(url) { const d = this.load(); d.workerUrl = url; this.save(d); }
+};
+
+/* --- API module --- */
+const MashovAPI = {
+  BASE: 'https://web.mashov.info/api',
+  PROXY_PUBLIC: 'https://corsproxy.io/?url=',   // for unauthenticated calls only
+  _schools: null,
+
+  _workerUrl() { return MashovCreds.getWorkerUrl(); },
+
+  /* Fetch through Cloudflare Worker (supports cookie forwarding via x-mashov-cookie) */
+  async _fetch(url, opts = {}, cookie = '') {
+    const worker = this._workerUrl();
+    if (!worker) throw new Error('NO_WORKER');
+    const headers = Object.assign({}, opts.headers || {});
+    if (cookie) headers['x-mashov-cookie'] = cookie;
+    const res = await fetch(`${worker}?url=${encodeURIComponent(url)}`, {
+      method: opts.method || 'GET',
+      headers,
+      body: opts.body || undefined
+    });
+    return res;
+  },
+
+  /* Unauthenticated GET through public proxy */
+  async _publicGet(path) {
+    const res = await fetch(this.PROXY_PUBLIC + encodeURIComponent(this.BASE + path));
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    return res.json();
+  },
+
+  /* Search schools — no auth needed */
+  async searchSchools(query) {
+    if (!this._schools) {
+      this._schools = await this._publicGet('/schools');
+    }
+    const q = query.trim().toLowerCase();
+    return (this._schools || [])
+      .filter(s => s.name && s.name.toLowerCase().includes(q))
+      .slice(0, 12);
+  },
+
+  /* Login — returns { ok, cookie, mashovUserId, error } */
+  async login(semel, year, userId, password) {
+    const worker = this._workerUrl();
+    if (!worker) return { ok: false, error: 'NO_WORKER' };
+    try {
+      const res = await this._fetch(this.BASE + '/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ semel: Number(semel), year: Number(year), username: userId, password })
+      });
+      if (!res.ok) return { ok: false, error: 'HTTP ' + res.status };
+      const data = await res.json();
+      /* The Worker forwards Set-Cookie as x-set-cookie or as a JSON cookie field.
+         We also accept a cookie value in the response body if the worker extracts it. */
+      const cookie = res.headers.get('x-response-cookie') || data._cookie || '';
+      const mashovUserId = data.students?.[0]?.id || data.userId || data.student?.id || null;
+      return { ok: true, cookie, mashovUserId, raw: data };
+    } catch(e) {
+      return { ok: false, error: e.message };
+    }
+  },
+
+  /* Generic authenticated GET */
+  async _authGet(path, acc) {
+    const res = await this._fetch(this.BASE + path, {}, acc.sessionCookie || '');
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    return res.json();
+  },
+
+  /* Homework: returns [{lessonId, lessonDate, subjectName, homework}] */
+  async getHomework(acc, from, to) {
+    const uid = acc.mashovUserId;
+    return this._authGet(`/students/${uid}/homework?from=${from}&to=${to}`, acc);
+  },
+
+  /* Grades: returns [{subjectName, grade, eventDate, type}] */
+  async getGrades(acc) {
+    return this._authGet(`/students/${acc.mashovUserId}/grades`, acc);
+  },
+
+  /* Attendance: returns [{lessonDate, subjectName, status}] */
+  async getAttendance(acc, from, to) {
+    return this._authGet(`/students/${acc.mashovUserId}/attendance?from=${from}&to=${to}`, acc);
+  },
+
+  /* Sync one child: imports homework, saves grades+attendance to Firebase */
+  async syncChild(childId) {
+    const acc = MashovCreds.get(childId);
+    if (!acc || !acc.mashovUserId || !acc.sessionCookie) throw new Error('NOT_CONNECTED');
+
+    const today   = new Date();
+    const from    = today.toISOString().slice(0,10);
+    const futureD = new Date(today); futureD.setDate(futureD.getDate() + 14);
+    const to      = futureD.toISOString().slice(0,10);
+
+    const weekAgo = new Date(today); weekAgo.setDate(weekAgo.getDate() - 7);
+    const wFrom   = weekAgo.toISOString().slice(0,10);
+
+    let importedCount = 0;
+
+    /* ---- Homework → Tasks ---- */
+    try {
+      const hw = await this.getHomework(acc, from, to);
+      (hw || []).forEach(item => {
+        if (!item.homework || !item.homework.trim()) return;
+        const mashovId = `${item.lessonId}_${item.lessonDate}`;
+        const already  = State.data.tasks.some(tk => tk.mashovId === mashovId);
+        if (already) return;
+        State.data.tasks.push({
+          id:          genId(),
+          title:       `${item.subjectName}: ${item.homework}`.slice(0, 80),
+          description: '',
+          assignedTo:  childId,
+          category:    'homework',
+          recurrence:  'one-time',
+          points:      2,
+          timeOfDay:   'anytime',
+          dueTime:     item.lessonDate || '',
+          mashovId,
+          source:      'mashov'
+        });
+        importedCount++;
+      });
+    } catch(e) { console.warn('Mashov homework error:', e); }
+
+    /* ---- Grades ---- */
+    let grades = [];
+    try {
+      const raw = await this.getGrades(acc);
+      grades = (raw || []).slice(0, 10).map(g => ({
+        subjectName: g.subjectName || g.subject || '?',
+        grade:       Number(g.grade) || 0,
+        date:        g.eventDate || g.date || '',
+        type:        g.type || ''
+      }));
+    } catch(e) { console.warn('Mashov grades error:', e); }
+
+    /* ---- Attendance ---- */
+    let attendance = [];
+    try {
+      const raw = await this.getAttendance(acc, wFrom, from);
+      attendance = (raw || []).slice(0, 30).map(a => ({
+        date:    a.lessonDate || a.date || '',
+        lesson:  a.subjectName || a.lesson || '',
+        status:  a.status || a.absenceType || 'חיסור'
+      }));
+    } catch(e) { console.warn('Mashov attendance error:', e); }
+
+    /* ---- Save to State ---- */
+    if (!State.data.mashovData) State.data.mashovData = {};
+    State.data.mashovData[childId] = { grades, attendance, lastSync: Date.now() };
+
+    /* Update creds lastSync */
+    acc.lastSync = Date.now();
+    MashovCreds.set(acc);
+
+    State.save();
+    return importedCount;
+  }
+};
+
+/* --- Mashov UI helpers --- */
+
+function _mashovWorkerCode() {
+  return `// Cloudflare Worker — paste at workers.cloudflare.com → Create Worker
+export default {
+  async fetch(request, env, ctx) {
+    const url = new URL(request.url);
+    const target = url.searchParams.get('url');
+    if (!target) return new Response('No target', {status:400});
+    if (request.method === 'OPTIONS')
+      return new Response(null, {headers:{'Access-Control-Allow-Origin':'*','Access-Control-Allow-Headers':'*','Access-Control-Allow-Methods':'*'}});
+    const headers = new Headers();
+    for (const [k,v] of request.headers.entries()) {
+      if (k.toLowerCase() === 'x-mashov-cookie') headers.set('Cookie', v);
+      else if (!['host','origin'].includes(k.toLowerCase())) headers.set(k,v);
+    }
+    const res = await fetch(target, {method:request.method, headers, body:request.body});
+    const out = new Headers(res.headers);
+    out.set('Access-Control-Allow-Origin','*');
+    out.set('Access-Control-Expose-Headers','x-response-cookie');
+    const setCookie = res.headers.get('set-cookie') || '';
+    if (setCookie) out.set('x-response-cookie', setCookie);
+    return new Response(res.body, {status:res.status, headers:out});
+  }
+};`.trim();
+}
+
+function openMashovWorkerModal() {
+  const code = _mashovWorkerCode();
+  const wUrl = MashovCreds.getWorkerUrl();
+  openModal(`
+    <div style="font-size:0.85rem;color:var(--muted);margin-bottom:14px;line-height:1.5;">
+      ${_lang==='he'
+        ? 'כדי לתקשר עם משוב מהאפליקציה צריך ליצור Worker חינמי ב-Cloudflare (לוקח כ-3 דקות).'
+        : 'To connect to Mashov from the app, create a free Cloudflare Worker (takes ~3 minutes).'}
+    </div>
+    <div style="font-size:0.8rem;font-weight:700;margin-bottom:6px;">1. ${_lang==='he'?'עבור ל':'Go to'} <a href="https://workers.cloudflare.com" target="_blank" style="color:var(--blue);">workers.cloudflare.com</a></div>
+    <div style="font-size:0.8rem;font-weight:700;margin-bottom:6px;">2. ${_lang==='he'?'צור Worker חדש, מחק הכל, הדבק את הקוד:':'Create a new Worker, clear it, paste this code:'}</div>
+    <pre style="background:#1e1e1e;color:#d4d4d4;border-radius:8px;padding:10px;font-size:0.65rem;overflow-x:auto;margin-bottom:10px;direction:ltr;">${esc(code)}</pre>
+    <div style="font-size:0.8rem;font-weight:700;margin-bottom:6px;">3. ${_lang==='he'?'לחץ Deploy ואז העתק את ה-URL שלו לכאן:':'Click Deploy, then paste the Worker URL here:'}</div>
+    <div class="form-group">
+      <input type="url" class="form-input" id="worker-url-input" value="${esc(wUrl)}" placeholder="https://your-worker.your-account.workers.dev">
+    </div>
+    <button class="btn btn-primary btn-full" onclick="doSaveWorkerUrl()">${_lang==='he'?'שמור URL':'Save URL'}</button>
+  `, _lang==='he'?'⚙️ הגדרת Cloudflare Worker':'⚙️ Cloudflare Worker Setup');
+}
+
+function doSaveWorkerUrl() {
+  const val = (document.getElementById('worker-url-input')?.value || '').trim();
+  MashovCreds.setWorkerUrl(val);
+  closeModal();
+  showToast(_lang==='he'?'✅ Worker URL נשמר':'✅ Worker URL saved');
+  switchTab('settings');
+}
+
+function openMashovConnectModal(childId) {
+  const existing = MashovCreds.get(childId) || {};
+  const child = State.getChild(childId);
+  const workerSet = !!MashovCreds.getWorkerUrl();
+  openModal(`
+    ${!workerSet ? `<div style="background:#FEF3C7;border-radius:10px;padding:10px 12px;margin-bottom:14px;font-size:0.82rem;font-weight:600;">
+      ⚠️ ${_lang==='he'?'קודם כל הגדר Cloudflare Worker':'First configure Cloudflare Worker'}
+      <button class="btn btn-ghost btn-sm" onclick="closeModal();openMashovWorkerModal();" style="margin-${_lang==='he'?'right':'left'}:8px;">${_lang==='he'?'הגדר →':'Setup →'}</button>
+    </div>` : ''}
+    <div class="school-autocomplete">
+      <label class="form-label">${t('mashovSchool')}</label>
+      <input type="text" class="form-input" id="msh-school-input"
+        value="${esc(existing.schoolName||'')}"
+        placeholder="${t('mashovSchoolPlaceholder')}"
+        oninput="mashovSchoolSearch(this.value)"
+        autocomplete="off">
+      <input type="hidden" id="msh-semel" value="${existing.schoolSemel||''}">
+      <div class="school-dropdown" id="msh-school-dropdown" style="display:none;"></div>
+    </div>
+    <div class="form-group" style="margin-top:12px;">
+      <label class="form-label">${t('mashovUserId')}</label>
+      <input type="tel" class="form-input" id="msh-userid" value="${esc(existing.userId||'')}" placeholder="000000000" inputmode="numeric">
+    </div>
+    <div class="form-group">
+      <label class="form-label">${t('mashovPassword')}</label>
+      <input type="password" class="form-input" id="msh-pass" value="${esc(existing.password||'')}" placeholder="••••••••">
+    </div>
+    <div class="form-group">
+      <label class="form-label">${t('mashovYear')}</label>
+      <input type="number" class="form-input" id="msh-year" value="${existing.year||new Date().getFullYear()}" min="2020" max="2030">
+    </div>
+    <span class="form-error" id="msh-err" style="display:none;"></span>
+    <button class="btn btn-primary btn-full" id="msh-login-btn" onclick="doMashovLogin('${childId}')" ${!workerSet?'disabled':''}>
+      ${t('mashovTestLogin')}
+    </button>
+  `, `${child?.emoji||'👦'} ${child?.name||''} — ${t('mashovConnect')}`);
+}
+
+let _mashovSchoolTimer = null;
+function mashovSchoolSearch(val) {
+  clearTimeout(_mashovSchoolTimer);
+  const dd = document.getElementById('msh-school-dropdown');
+  if (!dd) return;
+  if (val.length < 2) { dd.style.display = 'none'; return; }
+  dd.style.display = 'block';
+  dd.innerHTML = `<div class="school-dropdown-item" style="color:var(--muted);">${t('mashovSearching')}</div>`;
+  _mashovSchoolTimer = setTimeout(async () => {
+    try {
+      const results = await MashovAPI.searchSchools(val);
+      if (!results.length) {
+        dd.innerHTML = `<div class="school-dropdown-item" style="color:var(--muted);">${_lang==='he'?'לא נמצאו תוצאות':'No results'}</div>`;
+        return;
+      }
+      dd.innerHTML = results.map(s =>
+        `<div class="school-dropdown-item" onclick="selectMashovSchool(${s.semelMosad||s.semel},'${esc(s.name)}',this.parentElement)">${esc(s.name)}</div>`
+      ).join('');
+    } catch(e) {
+      dd.innerHTML = `<div class="school-dropdown-item" style="color:var(--coral);">${_lang==='he'?'שגיאה בחיפוש':'Search error'}</div>`;
+    }
+  }, 400);
+}
+
+function selectMashovSchool(semel, name, dropdown) {
+  const inp = document.getElementById('msh-school-input');
+  const sem = document.getElementById('msh-semel');
+  if (inp) inp.value = name;
+  if (sem) sem.value = semel;
+  if (dropdown) dropdown.style.display = 'none';
+}
+
+async function doMashovLogin(childId) {
+  const semel  = document.getElementById('msh-semel')?.value;
+  const userId = document.getElementById('msh-userid')?.value?.trim();
+  const pass   = document.getElementById('msh-pass')?.value;
+  const year   = document.getElementById('msh-year')?.value;
+  const schoolName = document.getElementById('msh-school-input')?.value?.trim();
+  const errEl  = document.getElementById('msh-err');
+  const btn    = document.getElementById('msh-login-btn');
+
+  if (!semel || !userId || !pass) {
+    if (errEl) { errEl.textContent = _lang==='he'?'מלא את כל השדות':'Fill all fields'; errEl.style.display=''; }
+    return;
+  }
+  if (errEl) errEl.style.display = 'none';
+  if (btn) { btn.disabled = true; btn.textContent = '⏳'; }
+
+  const result = await MashovAPI.login(semel, year, userId, pass);
+
+  if (btn) { btn.disabled = false; btn.textContent = t('mashovTestLogin'); }
+
+  if (!result.ok) {
+    const msg = result.error === 'NO_WORKER'
+      ? (_lang==='he'?'הגדר Cloudflare Worker תחילה':'Configure Cloudflare Worker first')
+      : t('mashovLoginFail');
+    if (errEl) { errEl.textContent = msg; errEl.style.display=''; }
+    return;
+  }
+
+  MashovCreds.set({
+    childId,
+    schoolSemel: semel,
+    schoolName,
+    userId,
+    password:      pass,
+    year:          Number(year),
+    mashovUserId:  result.mashovUserId,
+    sessionCookie: result.cookie,
+    lastSync: null
+  });
+
+  closeModal();
+  showToast(t('mashovLoginOk'));
+  switchTab('settings');
+}
+
+async function doMashovSync(childId) {
+  const child = State.getChild(childId);
+  showToast(t('mashovSyncing'));
+  try {
+    const count = await MashovAPI.syncChild(childId);
+    showToast(count > 0 ? t('mashovImported').replace('{n}', count) : t('mashovNoNew'));
+    switchTab('settings');
+  } catch(e) {
+    showToast(_lang==='he'?'❌ שגיאה בסנכרון: '+e.message:'❌ Sync error: '+e.message);
+  }
+}
+
+function doMashovDisconnect(childId) {
+  const child = State.getChild(childId);
+  if (!confirm(_lang==='he'?`לנתק את ${child?.name||'הילד'} ממשוב?`:`Disconnect ${child?.name||'child'} from Mashov?`)) return;
+  MashovCreds.remove(childId);
+  if (State.data.mashovData) delete State.data.mashovData[childId];
+  State.save();
+  showToast(_lang==='he'?'🗑️ החשבון נותק':'🗑️ Account disconnected');
+  switchTab('settings');
 }
 
 /* =====================================================================
