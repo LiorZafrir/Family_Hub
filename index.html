@@ -3614,8 +3614,9 @@ const MashovAPI = {
     return val;
   },
 
-  /* Generic authenticated GET — includes headers Mashov requires */
-  async _authGet(path, acc) {
+  /* Generic authenticated GET — includes headers Mashov requires.
+     On 401: auto-relogin once using stored password, then retry. */
+  async _authGet(path, acc, _retried) {
     const csrfToken = acc.xsrfToken || this._csrfToken(acc.sessionCookie || '');
     const res = await this._fetch(this.BASE + path, {
       headers: {
@@ -3626,6 +3627,23 @@ const MashovAPI = {
       }
     }, acc.sessionCookie || '');
     console.log('[Mashov] GET', path, '→', res.status);
+
+    /* Auto-relogin on 401 (expired session) */
+    if (res.status === 401 && !_retried && acc.password) {
+      console.log('[Mashov] 401 detected — attempting auto-relogin for child', acc.childId);
+      const loginRes = await this.login(acc.schoolSemel, acc.year, acc.userId, acc.password);
+      if (loginRes.ok && loginRes.cookie) {
+        acc.sessionCookie = loginRes.cookie;
+        acc.xsrfToken     = this._csrfToken(loginRes.cookie);
+        MashovCreds.set(acc);
+        console.log('[Mashov] re-login OK — retrying request');
+        return this._authGet(path, acc, true);   /* retry once */
+      } else {
+        console.warn('[Mashov] re-login failed:', loginRes.error);
+        throw new Error('SESSION_EXPIRED');
+      }
+    }
+
     if (!res.ok) {
       const errBody = await res.text().catch(() => '');
       console.warn('[Mashov] error body:', errBody.slice(0, 400));
@@ -3677,10 +3695,13 @@ const MashovAPI = {
     let importedCount = 0;
     const apiErrors = [];
 
-    /* Helper: extract homework text regardless of field name used by API */
-    const hwText = item =>
-      (item.homework || item.remark || item.homeworkDescription || item.body ||
-       item.lessonBody || item.description || item.content || '').trim();
+    /* Helper: extract homework text — skips "אין" markers, ignores remark (teacher note) */
+    const NO_HW = ['אין','אין.','אין ש"ב','אין שיעורי בית','אין שב','אין שע"ב','-','none','no homework','אין משימה'];
+    const hwText = item => {
+      const raw = (item.homework || item.homeworkDescription || item.body ||
+                   item.lessonBody || item.description || item.content || '').trim();
+      return NO_HW.some(m => raw === m || raw.toLowerCase() === m.toLowerCase()) ? '' : raw;
+    };
 
     /* ---- Homework → Tasks ---- */
     try {
@@ -3752,11 +3773,12 @@ const MashovAPI = {
       apiErrors.push('נוכחות: ' + e.message);
     }
 
-    /* If ALL 3 API calls failed, the session is probably expired/invalid — throw */
-    if (apiErrors.length === 3) {
+    /* If BOTH homework AND grades failed (attendance 404 is normal for some schools) */
+    const criticalErrors = apiErrors.filter(e => !e.startsWith('נוכחות') && !e.includes('attendance'));
+    if (criticalErrors.length >= 2) {
       throw new Error(_lang==='he'
-        ? 'הסשן פג תוקף — התחבר מחדש. ' + apiErrors.join(' | ')
-        : 'Session expired — reconnect. ' + apiErrors.join(' | '));
+        ? 'הסשן פג תוקף — התחבר מחדש. ' + criticalErrors.join(' | ')
+        : 'Session expired — reconnect. ' + criticalErrors.join(' | '));
     }
 
     /* ---- Save to State ---- */
