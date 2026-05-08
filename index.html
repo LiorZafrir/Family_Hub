@@ -3465,41 +3465,53 @@ const MashovAPI = {
     const acc = MashovCreds.get(childId);
     if (!acc || !acc.mashovUserId || !acc.sessionCookie) throw new Error('NOT_CONNECTED');
 
-    const today   = new Date();
-    const futureD = new Date(today); futureD.setDate(futureD.getDate() + 14);
+    const todayD  = new Date();
+    const futureD = new Date(todayD); futureD.setDate(futureD.getDate() + 14);
     const to      = futureD.toISOString().slice(0,10);
 
-    /* Go back 7 days so we catch homework assigned this week for upcoming lessons */
-    const weekAgo = new Date(today); weekAgo.setDate(weekAgo.getDate() - 7);
-    const from    = weekAgo.toISOString().slice(0,10);
-    const wFrom   = from;
+    /* First sync: go back 30 days. Subsequent syncs: 7 days */
+    const daysBack = acc.lastSync ? 7 : 30;
+    const pastD    = new Date(todayD); pastD.setDate(pastD.getDate() - daysBack);
+    const from     = pastD.toISOString().slice(0,10);
+    const wFrom    = from;
 
     let importedCount = 0;
+    const apiErrors = [];
+
+    /* Helper: extract homework text regardless of field name used by API */
+    const hwText = item =>
+      (item.homework || item.homeworkDescription || item.body ||
+       item.lessonBody || item.description || item.content || '').trim();
 
     /* ---- Homework → Tasks ---- */
     try {
       const hw = await this.getHomework(acc, from, to);
+      console.log('[Mashov] homework raw sample:', JSON.stringify((hw||[]).slice(0,2)));
       (hw || []).forEach(item => {
-        if (!item.homework || !item.homework.trim()) return;
+        const text = hwText(item);
+        if (!text) return;
         const mashovId = `${item.lessonId}_${item.lessonDate}`;
         const already  = State.data.tasks.some(tk => tk.mashovId === mashovId);
         if (already) return;
         State.data.tasks.push({
           id:          genId(),
-          title:       `${item.subjectName}: ${item.homework}`.slice(0, 80),
+          title:       `${item.subjectName || item.subject || '📚'}: ${text}`.slice(0, 80),
           description: '',
           assignedTo:  childId,
           category:    'homework',
           recurrence:  'one-time',
           points:      2,
           timeOfDay:   'anytime',
-          dueTime:     item.lessonDate || '',
+          dueTime:     item.lessonDate || item.date || '',
           mashovId,
           source:      'mashov'
         });
         importedCount++;
       });
-    } catch(e) { console.warn('Mashov homework error:', e); }
+    } catch(e) {
+      console.warn('Mashov homework error:', e);
+      apiErrors.push('שיעורי בית: ' + e.message);
+    }
 
     /* ---- Grades ---- */
     let grades = [];
@@ -3511,7 +3523,10 @@ const MashovAPI = {
         date:        g.eventDate || g.date || '',
         type:        g.type || ''
       }));
-    } catch(e) { console.warn('Mashov grades error:', e); }
+    } catch(e) {
+      console.warn('Mashov grades error:', e);
+      apiErrors.push('ציונים: ' + e.message);
+    }
 
     /* ---- Attendance ---- */
     let attendance = [];
@@ -3522,7 +3537,17 @@ const MashovAPI = {
         lesson:  a.subjectName || a.lesson || '',
         status:  a.status || a.absenceType || 'חיסור'
       }));
-    } catch(e) { console.warn('Mashov attendance error:', e); }
+    } catch(e) {
+      console.warn('Mashov attendance error:', e);
+      apiErrors.push('נוכחות: ' + e.message);
+    }
+
+    /* If ALL 3 API calls failed, the session is probably expired/invalid — throw */
+    if (apiErrors.length === 3) {
+      throw new Error(_lang==='he'
+        ? 'הסשן פג תוקף — התחבר מחדש. ' + apiErrors.join(' | ')
+        : 'Session expired — reconnect. ' + apiErrors.join(' | '));
+    }
 
     /* ---- Save to State ---- */
     if (!State.data.mashovData) State.data.mashovData = {};
@@ -3734,11 +3759,23 @@ async function doMashovLogin(childId) {
 
   /* Warn if we couldn't extract the internal Mashov user ID */
   if (!result.mashovUserId) {
-    console.warn('[Mashov] mashovUserId not found in response. Raw:', result.raw);
+    console.warn('[Mashov] mashovUserId not found. Raw:', result.raw);
     if (errEl) {
       errEl.textContent = _lang==='he'
-        ? `⚠️ כניסה הצליחה אבל לא נמצא מזהה תלמיד. תגובת השרת: ${JSON.stringify(result.raw).slice(0,200)}`
-        : `⚠️ Login OK but student ID not found. Server response: ${JSON.stringify(result.raw).slice(0,200)}`;
+        ? `⚠️ כניסה הצליחה אבל לא נמצא מזהה תלמיד. תגובת שרת: ${JSON.stringify(result.raw).slice(0,200)}`
+        : `⚠️ Login OK but student ID not found. Response: ${JSON.stringify(result.raw).slice(0,200)}`;
+      errEl.style.display = '';
+    }
+    return;
+  }
+
+  /* Validate cookie was actually captured */
+  if (!result.cookie || result.cookie.trim().length < 5) {
+    console.warn('[Mashov] empty cookie after login. Worker may need re-deploy.');
+    if (errEl) {
+      errEl.textContent = _lang==='he'
+        ? '⚠️ ההתחברות הצליחה אבל לא נקלט cookie. עדכן את קוד ה-Worker ב-Cloudflare ולחץ Deploy שוב.'
+        : '⚠️ Login OK but no session cookie received. Update the Worker code in Cloudflare and re-deploy.';
       errEl.style.display = '';
     }
     return;
@@ -3771,7 +3808,8 @@ async function doMashovLogin(childId) {
       switchTab('settings');
     } catch(e) {
       console.warn('[Mashov] auto-sync error:', e);
-      showToast(_lang==='he'?'⚠️ ההתחברות הצליחה — לחץ 🔄 סנכרן כדי לייבא שיעורי בית':'⚠️ Login OK — press 🔄 Sync to import homework');
+      /* Show the real error message — helps diagnose issues */
+      showToast('❌ ' + e.message);
     }
   }, 500);
 }
