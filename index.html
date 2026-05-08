@@ -3389,10 +3389,19 @@ const MashovAPI = {
       });
       if (!res.ok) return { ok: false, error: 'HTTP ' + res.status };
       const data = await res.json();
-      /* The Worker forwards Set-Cookie as x-set-cookie or as a JSON cookie field.
-         We also accept a cookie value in the response body if the worker extracts it. */
+      /* The Worker forwards Set-Cookie as x-response-cookie header */
       const cookie = res.headers.get('x-response-cookie') || data._cookie || '';
-      const mashovUserId = data.students?.[0]?.id || data.userId || data.student?.id || null;
+      /* Try every known Mashov response shape for the internal user ID */
+      const mashovUserId =
+        data.credential?.userId      ||   // most common: { credential: { userId } }
+        data.students?.[0]?.id        ||   // some versions
+        data.userId                   ||   // flat
+        data.student?.id              ||   // alternative
+        data.user?.id                 ||   // another variant
+        data.credential?.misparZehut  ||   // fallback: use national ID
+        null;
+      console.log('[Mashov] login raw response:', JSON.stringify(data));
+      console.log('[Mashov] extracted mashovUserId:', mashovUserId, '| cookie length:', cookie.length);
       return { ok: true, cookie, mashovUserId, raw: data };
     } catch(e) {
       return { ok: false, error: e.message };
@@ -3428,12 +3437,13 @@ const MashovAPI = {
     if (!acc || !acc.mashovUserId || !acc.sessionCookie) throw new Error('NOT_CONNECTED');
 
     const today   = new Date();
-    const from    = today.toISOString().slice(0,10);
     const futureD = new Date(today); futureD.setDate(futureD.getDate() + 14);
     const to      = futureD.toISOString().slice(0,10);
 
+    /* Go back 7 days so we catch homework assigned this week for upcoming lessons */
     const weekAgo = new Date(today); weekAgo.setDate(weekAgo.getDate() - 7);
-    const wFrom   = weekAgo.toISOString().slice(0,10);
+    const from    = weekAgo.toISOString().slice(0,10);
+    const wFrom   = from;
 
     let importedCount = 0;
 
@@ -3681,16 +3691,28 @@ async function doMashovLogin(childId) {
     return;
   }
 
+  /* Warn if we couldn't extract the internal Mashov user ID */
+  if (!result.mashovUserId) {
+    console.warn('[Mashov] mashovUserId not found in response. Raw:', result.raw);
+    if (errEl) {
+      errEl.textContent = _lang==='he'
+        ? `⚠️ כניסה הצליחה אבל לא נמצא מזהה תלמיד. תגובת השרת: ${JSON.stringify(result.raw).slice(0,200)}`
+        : `⚠️ Login OK but student ID not found. Server response: ${JSON.stringify(result.raw).slice(0,200)}`;
+      errEl.style.display = '';
+    }
+    return;
+  }
+
   MashovCreds.set({
     childId,
-    schoolSemel: semel,
+    schoolSemel:   semel,
     schoolName,
     userId,
     password:      pass,
     year:          Number(year),
     mashovUserId:  result.mashovUserId,
     sessionCookie: result.cookie,
-    lastSync: null
+    lastSync:      null
   });
 
   closeModal();
