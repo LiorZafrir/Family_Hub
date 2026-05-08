@@ -1769,14 +1769,38 @@ const Views = {
     },
 
     _tasks() {
-      const tasks = State.data.tasks;
+      const allTasks = State.data.tasks;
       const todayStr = today(), weekStr = getWeekStart();
+
+      /* ---- Filter bar ---- */
+      const tf = Views['parent-dashboard']._taskFilter || 'all';
+      const hasMashov = allTasks.some(t => t.source === 'mashov');
+      const filterBar = `
+        <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px;padding:0 2px;">
+          <button class="btn btn-sm ${tf==='all'?'btn-primary':'btn-ghost'}"
+            onclick="setTaskFilter('all')">${_lang==='he'?'הכל':'All'}</button>
+          ${hasMashov?`<button class="btn btn-sm ${tf==='mashov'?'btn-primary':'btn-ghost'}"
+            onclick="setTaskFilter('mashov')">🏫 ${_lang==='he'?'שיעורי בית':'Homework'}</button>`:''}
+          ${State.data.children.map(c=>`
+            <button class="btn btn-sm ${tf===c.id?'btn-primary':'btn-ghost'}"
+              onclick="setTaskFilter('${c.id}')">${c.emoji} ${esc(c.name)}</button>
+          `).join('')}
+        </div>`;
+
+      /* Apply filter */
+      let tasks = allTasks;
+      if (tf === 'mashov')        tasks = allTasks.filter(t => t.source === 'mashov');
+      else if (tf !== 'all')      tasks = allTasks.filter(t => t.assignedTo === tf || t.assignedTo === 'all');
+
       if (!tasks.length) return `
         <div class="section-pad">
+          ${allTasks.length ? filterBar : ''}
           <div class="empty-state">
-            <span class="empty-emoji">📋</span>
-            <h3>${t('noTasksYet')}</h3>
-            <p>${t('tapToAddTask')}</p>
+            <span class="empty-emoji">${tf==='mashov'?'🏫':'📋'}</span>
+            <h3>${tf==='mashov'?(_lang==='he'?'אין שיעורי בית מיובאים':'No imported homework'):t('noTasksYet')}</h3>
+            <p>${tf==='mashov'
+              ? (_lang==='he'?'לחץ 🔄 סנכרן בהגדרות כדי לייבא מהמשוב':'Click 🔄 Sync in Settings to import from Mashov')
+              : t('tapToAddTask')}</p>
           </div>
         </div>
         <button class="fab" onclick="openAddTask()">+</button>`;
@@ -1829,7 +1853,7 @@ const Views = {
         </div>`;
       }).join('');
 
-      return `<div class="section-pad">${cards}<div class="spacer80"></div></div>
+      return `<div class="section-pad">${filterBar}${cards}<div class="spacer80"></div></div>
               <button class="fab" onclick="openAddTask()">+</button>`;
     },
 
@@ -2567,6 +2591,11 @@ function switchTab(tab) {
   Views['parent-dashboard'].render({ tab });
   const el = document.getElementById('view-parent-dashboard');
   if (el) { el.classList.add('active'); el.scrollTop = 0; }
+}
+
+function setTaskFilter(filter) {
+  Views['parent-dashboard']._taskFilter = filter;
+  switchTab('tasks');
 }
 
 /* --- TASKS --- */
