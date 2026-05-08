@@ -1527,7 +1527,7 @@ const State = {
         if (!comp || comp.status === 'pending') pendingCount++;
       });
     });
-    const awaitingVerification = this.data.taskCompletions.filter(c => c.status === 'done-awaiting').length;
+    const awaitingVerification = this.data.taskCompletions.filter(c => c.status === 'done-awaiting' && c.date === todayStr).length;
     const pendingRequests    = this.data.requests.filter(r => r.status === 'pending').length;
     const individualPending  = (this.data.redemptions||[]).filter(r => !r.isGroup && r.status === 'pending').length;
     const groupAtGoal        = (this.data.redemptions||[]).filter(r => {
@@ -1833,6 +1833,22 @@ const Views = {
       let tasks = allTasks;
       if (tf === 'mashov')        tasks = allTasks.filter(t => t.source === 'mashov');
       else if (tf !== 'all')      tasks = allTasks.filter(t => t.assignedTo === tf || t.assignedTo === 'all');
+
+      /* Hide tasks that are fully verified today — they've moved to history.
+         A task is "done for today" if every target child has a verified completion for the current period. */
+      tasks = tasks.filter(task => {
+        const periodKey = task.recurrence === 'weekly' ? weekStr : todayStr;
+        const targets = task.assignedTo === 'all'
+          ? State.data.children
+          : State.data.children.filter(c => c.id === task.assignedTo);
+        if (!targets.length) return true;
+        return !targets.every(child => {
+          const comp = State.data.taskCompletions.find(
+            c => c.taskId === task.id && c.childId === child.id && c.date === periodKey
+          );
+          return comp && comp.status === 'verified';
+        });
+      });
 
       if (!tasks.length) return `
         <div class="section-pad">
@@ -2385,13 +2401,15 @@ const Views = {
       const child = State.getChild(params.childId);
       if (!child) { Router.navigate('home'); return; }
 
-      const tasks = State.getChildTasks(child.id);
+      const allTasks = State.getChildTasks(child.id);
       const motivational = getMotivational(child.name);
       const MILESTONE = 50;
       const progress = Math.min(((child.totalPoints % MILESTONE) / MILESTONE) * 100, 100);
       const nextMilestone = (Math.floor(child.totalPoints / MILESTONE) + 1) * MILESTONE;
       const pendingReqCount = State.data.requests.filter(r => r.childId === child.id && r.status === 'pending').length;
-      const allVerified = tasks.length > 0 && tasks.every(({ comp }) => comp.status === 'verified');
+      const allVerified = allTasks.length > 0 && allTasks.every(({ comp }) => comp.status === 'verified');
+      /* Hide verified tasks from the list — they appear in history; show 🎉 when all done */
+      const tasks = allVerified ? allTasks : allTasks.filter(({ comp }) => comp.status !== 'verified');
 
       function renderTaskCard(task, comp) {
         const isAwaiting = comp.status === 'done-awaiting';
