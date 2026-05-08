@@ -3437,19 +3437,42 @@ const MashovAPI = {
     }
   },
 
+  /* Parse cookie string → { name: value } map */
+  _parseCookies(cookieStr) {
+    const map = {};
+    (cookieStr || '').split(';').forEach(pair => {
+      const idx = pair.indexOf('=');
+      if (idx > 0) {
+        map[pair.slice(0, idx).trim()] = pair.slice(idx + 1).trim();
+      }
+    });
+    return map;
+  },
+
+  /* Find CSRF token in cookie map — Mashov uses X-Csrf-Token header */
+  _csrfToken(cookieStr) {
+    const c = this._parseCookies(cookieStr);
+    /* Try known names in priority order */
+    const val = c['XSRF-TOKEN'] || c['csrf_token'] || c['X-Csrf-Token'] ||
+      Object.entries(c).find(([k]) =>
+        k.toLowerCase().includes('xsrf') ||
+        k.toLowerCase().includes('csrf') ||
+        k.toLowerCase().includes('antiforgery')
+      )?.[1] || '';
+    console.log('[Mashov] cookie keys:', Object.keys(c).join(', '));
+    console.log('[Mashov] csrf token found:', val ? val.slice(0,20)+'...' : 'NONE');
+    return val;
+  },
+
   /* Generic authenticated GET — includes headers Mashov requires */
   async _authGet(path, acc) {
-    /* Extract XSRF token from cookie string if present */
-    const xsrf = (acc.sessionCookie || '').split(';')
-      .map(c => c.trim()).find(c => c.startsWith('XSRF-TOKEN=') || c.startsWith('.AspNetCore.Antiforgery'));
-    const xsrfVal = xsrf ? xsrf.split('=').slice(1).join('=') : '';
-
+    const csrfToken = acc.xsrfToken || this._csrfToken(acc.sessionCookie || '');
     const res = await this._fetch(this.BASE + path, {
       headers: {
         'Accept': 'application/json, text/plain, */*',
         'Referer': 'https://web.mashov.info/',
         'X-Requested-With': 'XMLHttpRequest',
-        ...(xsrfVal ? { 'X-XSRF-TOKEN': xsrfVal } : {})
+        ...(csrfToken ? { 'X-Csrf-Token': csrfToken } : {})
       }
     }, acc.sessionCookie || '');
     console.log('[Mashov] GET', path, '→', res.status);
@@ -3814,6 +3837,7 @@ async function doMashovLogin(childId) {
     year:          Number(year),
     mashovUserId:  result.mashovUserId,
     sessionCookie: result.cookie,
+    xsrfToken:     MashovAPI._csrfToken(result.cookie),
     lastSync:      null
   });
 
