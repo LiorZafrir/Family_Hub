@@ -2362,7 +2362,7 @@ const Views = {
               ${task.description ? `<div class="task-card-sub">${esc(task.description)}</div>` : ''}
               ${task.dueTime ? `<div class="task-card-sub">⏰ ${esc(task.dueTime)}</div>` : ''}
             </div>
-            ${starsHTML(task.points)}
+            ${task.source==='mashov' ? '' : starsHTML(task.points)}
           </div>
           <div class="task-card-meta">
             <span class="badge badge-${task.category}">${catLabel(task.category)}</span>
@@ -2409,7 +2409,9 @@ const Views = {
 
         const gid = () => 'ch' + Math.random().toString(36).slice(2,7);
         const catId = gid();
-        const doneCount = mashovEntries.filter(e => e.comp.status === 'verified' || e.comp.status === 'done-awaiting').length;
+        const doneCount  = mashovEntries.filter(e => e.comp.status === 'verified' || e.comp.status === 'done-awaiting').length;
+        const totalBonus = mashovEntries.reduce((s, e) => s + (e.task.points || 2), 0);
+        const allHwDone  = doneCount === mashovEntries.length;
 
         const subjHtml = Object.entries(bySubj)
           .sort(([a],[b]) => a.localeCompare(b,'he'))
@@ -2443,7 +2445,11 @@ const Views = {
                      text-align:inherit;margin-bottom:6px;">
               <span class="hw-arr">▼</span>
               🏫 ${_lang==='he'?'שיעורי בית':'Homework'}
-              <span style="margin-inline-start:auto;font-size:0.78rem;font-weight:600;">${doneCount}/${mashovEntries.length} ✓</span>
+              <span style="margin-inline-start:auto;font-size:0.78rem;font-weight:600;">
+                ${allHwDone
+                  ? `✅ +${totalBonus}⭐`
+                  : `${doneCount}/${mashovEntries.length} ✓ &nbsp;·&nbsp; 🏆 +${totalBonus}⭐`}
+              </span>
             </button>
             <div id="${catId}">${subjHtml}</div>
           </div>`;
@@ -2766,11 +2772,44 @@ function doVerifyTask(compId) {
   const child = State.getChild(comp.childId);
   if (!task || !child) return;
   comp.status = 'verified';
-  child.totalPoints += task.points;
-  logHistory('task', '✅', `Verified "${task.title}" for ${child.name} (+${task.points} ⭐)`, child.id);
-  State.save();
-  checkStreakForChild(child.id);
-  showToast(_lang==='he'?`⭐ ${child.name} הרוויח ${task.points} כוכב${task.points > 1 ? 'ים' : ''}!`:`⭐ ${child.name} earned ${task.points} star${task.points > 1 ? 's' : ''}!`);
+
+  if (task.source === 'mashov') {
+    /* Mashov: stars only when ALL homework is done */
+    const mashovTasks = State.data.tasks.filter(t => t.source === 'mashov' && t.assignedTo === comp.childId);
+    const todayKey = today();
+    const allDone = mashovTasks.every(t => {
+      const c = State.data.taskCompletions.find(cc => cc.taskId === t.id && cc.childId === comp.childId && cc.date === todayKey);
+      return c && c.status === 'verified';
+    });
+    if (allDone && mashovTasks.length > 0) {
+      const bonus = mashovTasks.reduce((s, t) => s + (t.points || 2), 0);
+      child.totalPoints += bonus;
+      logHistory('task', '🏫', `${child.name} השלים את כל שיעורי הבית! (+${bonus} ⭐)`, child.id);
+      State.save();
+      checkStreakForChild(child.id);
+      showToast(_lang==='he'
+        ? `🏫🌟 ${child.name} השלים את כל שיעורי הבית! +${bonus} ⭐`
+        : `🏫🌟 ${child.name} finished all homework! +${bonus} ⭐`);
+    } else {
+      const verifiedNow = mashovTasks.filter(t => {
+        const c = State.data.taskCompletions.find(cc => cc.taskId === t.id && cc.childId === comp.childId && cc.date === todayKey);
+        return c && c.status === 'verified';
+      }).length;
+      State.save();
+      showToast(_lang==='he'
+        ? `✅ אושר (${verifiedNow}/${mashovTasks.length} שיעורי בית)`
+        : `✅ Verified (${verifiedNow}/${mashovTasks.length} homework tasks)`);
+    }
+  } else {
+    /* Regular tasks: award points immediately */
+    child.totalPoints += task.points;
+    logHistory('task', '✅', `Verified "${task.title}" for ${child.name} (+${task.points} ⭐)`, child.id);
+    State.save();
+    checkStreakForChild(child.id);
+    showToast(_lang==='he'
+      ? `⭐ ${child.name} הרוויח ${task.points} כוכב${task.points > 1 ? 'ים' : ''}!`
+      : `⭐ ${child.name} earned ${task.points} star${task.points > 1 ? 's' : ''}!`);
+  }
   switchTab(Views['parent-dashboard']._tab);
 }
 
