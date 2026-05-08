@@ -2105,9 +2105,11 @@ const Views = {
               ${totalTasks} ${t('tasksAssigned')} &nbsp;·&nbsp; ${verifiedToday} ${t('verifiedToday')}
             </div>
             ${mashovPanel}
-            <div class="task-card-actions" style="margin-top:${mashovPanel?'10px':'0'}">
+            <div class="task-card-actions" style="margin-top:${mashovPanel?'10px':'0'};flex-wrap:wrap;gap:6px;">
               <button class="btn btn-ghost btn-sm" onclick="openEditChild('${child.id}')">${t('editBtn')}</button>
               <button class="btn btn-danger btn-sm" onclick="doRemoveChild('${child.id}')">${t('removeBtn')}</button>
+              <button class="btn btn-sm" style="background:#FFF3CD;color:#92400E;border:1px solid #FDE68A;"
+                onclick="openDeductStars('${child.id}')">➖⭐ ${_lang==='he'?'הורד כוכבים':'Deduct stars'}</button>
             </div>
           </div>`;
         }).join('')}
@@ -2872,6 +2874,72 @@ function doVerifyTask(compId) {
       : `⭐ ${child.name} earned ${task.points} star${task.points > 1 ? 's' : ''}!`);
   }
   switchTab(Views['parent-dashboard']._tab);
+}
+
+/* ---- DEDUCT STARS ---- */
+function openDeductStars(childId) {
+  const child = State.getChild(childId);
+  if (!child) return;
+  openModal(`
+    <div style="text-align:center;margin-bottom:16px;">
+      <div style="font-size:2rem;">${child.emoji}</div>
+      <div style="font-family:'Nunito',sans-serif;font-weight:800;font-size:1.1rem;">${esc(child.name)}</div>
+      <div style="font-size:0.85rem;color:var(--muted);margin-top:2px;">
+        ${_lang==='he'?'יתרה נוכחית:':'Current balance:'} ⭐ ${child.totalPoints}
+      </div>
+    </div>
+    <div class="form-group">
+      <label class="form-label">${_lang==='he'?'כמה כוכבים להוריד?':'How many stars to deduct?'}</label>
+      <div class="star-picker" id="ded-stars" style="justify-content:center;gap:6px;">
+        ${[1,2,3,4,5].map(n=>`<button type="button" class="star-pick-btn${n<=1?' filled':''}"
+          onclick="selectDeductStars(${n})" style="font-size:1.8rem;">★</button>`).join('')}
+      </div>
+      <input type="hidden" id="ded-amount" value="1">
+      <div id="ded-preview" style="text-align:center;margin-top:8px;font-size:0.82rem;color:var(--coral);font-weight:600;">
+        ⭐ ${child.totalPoints} → ⭐ ${Math.max(0, child.totalPoints - 1)}
+      </div>
+    </div>
+    <div class="form-group">
+      <label class="form-label">${_lang==='he'?'סיבה (אופציונלי):':'Reason (optional):'}</label>
+      <input type="text" class="form-input" id="ded-reason"
+        placeholder="${_lang==='he'?'למשל: התנהגות לא הולמת':'e.g. Misbehaviour'}">
+    </div>
+    <button class="btn btn-primary btn-full" style="background:var(--coral);"
+      onclick="doDeductStars('${childId}')">
+      ➖⭐ ${_lang==='he'?'הורד כוכבים':'Deduct stars'}
+    </button>
+  `, `➖⭐ ${_lang==='he'?'הורדת כוכבים':'Deduct stars'} — ${child.emoji} ${esc(child.name)}`);
+  /* Store childId for the preview update */
+  window._deductChildId = childId;
+}
+
+function selectDeductStars(n) {
+  document.getElementById('ded-amount').value = n;
+  document.querySelectorAll('#ded-stars .star-pick-btn').forEach((b, i) => b.classList.toggle('filled', i < n));
+  const child = State.getChild(window._deductChildId);
+  if (child) {
+    const preview = document.getElementById('ded-preview');
+    if (preview) preview.textContent = `⭐ ${child.totalPoints} → ⭐ ${Math.max(0, child.totalPoints - n)}`;
+  }
+}
+
+function doDeductStars(childId) {
+  const child = State.getChild(childId);
+  if (!child) return;
+  const amount = parseInt(document.getElementById('ded-amount')?.value) || 1;
+  const reason = document.getElementById('ded-reason')?.value.trim() || '';
+  const before = child.totalPoints;
+  child.totalPoints = Math.max(0, child.totalPoints - amount);
+  const actual = before - child.totalPoints;
+  const desc = (_lang==='he'
+    ? `הורדו ${actual} כוכבים מ-${child.name}`
+    : `Deducted ${actual} stars from ${child.name}`)
+    + (reason ? ` — ${reason}` : '');
+  logHistory('task', '➖', desc, childId);
+  State.save();
+  closeModal();
+  showToast(`➖⭐ ${desc}`);
+  switchTab('children');
 }
 
 function doSkipTask(compId) {
