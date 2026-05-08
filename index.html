@@ -3437,33 +3437,43 @@ const MashovAPI = {
     }
   },
 
-  /* Generic authenticated GET */
+  /* Generic authenticated GET — includes headers Mashov requires */
   async _authGet(path, acc) {
-    const res = await this._fetch(this.BASE + path, {}, acc.sessionCookie || '');
+    const res = await this._fetch(this.BASE + path, {
+      headers: {
+        'Accept': 'application/json, text/plain, */*',
+        'Referer': 'https://web.mashov.info/',
+        'X-Requested-With': 'XMLHttpRequest'
+      }
+    }, acc.sessionCookie || '');
+    console.log('[Mashov] GET', path, '→', res.status);
     if (!res.ok) throw new Error('HTTP ' + res.status);
     return res.json();
   },
 
   /* Homework: returns [{lessonId, lessonDate, subjectName, homework}] */
   async getHomework(acc, from, to) {
-    const uid = acc.mashovUserId;
+    const uid = Number(acc.mashovUserId); // Mashov expects numeric ID
     return this._authGet(`/students/${uid}/homework?from=${from}&to=${to}`, acc);
   },
 
   /* Grades: returns [{subjectName, grade, eventDate, type}] */
   async getGrades(acc) {
-    return this._authGet(`/students/${acc.mashovUserId}/grades`, acc);
+    const uid = Number(acc.mashovUserId);
+    return this._authGet(`/students/${uid}/grades`, acc);
   },
 
   /* Attendance: returns [{lessonDate, subjectName, status}] */
   async getAttendance(acc, from, to) {
-    return this._authGet(`/students/${acc.mashovUserId}/attendance?from=${from}&to=${to}`, acc);
+    const uid = Number(acc.mashovUserId);
+    return this._authGet(`/students/${uid}/attendance?from=${from}&to=${to}`, acc);
   },
 
   /* Sync one child: imports homework, saves grades+attendance to Firebase */
   async syncChild(childId) {
     const acc = MashovCreds.get(childId);
     if (!acc || !acc.mashovUserId || !acc.sessionCookie) throw new Error('NOT_CONNECTED');
+    console.log('[Mashov] syncChild:', childId, '| mashovUserId:', acc.mashovUserId, '| cookieLen:', (acc.sessionCookie||'').length, '| semel:', acc.schoolSemel, '| year:', acc.year);
 
     const todayD  = new Date();
     const futureD = new Date(todayD); futureD.setDate(futureD.getDate() + 14);
@@ -3531,7 +3541,7 @@ const MashovAPI = {
     /* ---- Attendance ---- */
     let attendance = [];
     try {
-      const raw = await this.getAttendance(acc, wFrom, from);
+      const raw = await this.getAttendance(acc, wFrom, to);
       attendance = (raw || []).slice(0, 30).map(a => ({
         date:    a.lessonDate || a.date || '',
         lesson:  a.subjectName || a.lesson || '',
