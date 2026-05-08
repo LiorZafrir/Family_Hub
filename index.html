@@ -3540,25 +3540,37 @@ const MashovAPI = {
 /* --- Mashov UI helpers --- */
 
 function _mashovWorkerCode() {
-  return `// Cloudflare Worker — paste at workers.cloudflare.com → Create Worker
+  return `// Cloudflare Worker v2 — paste at workers.cloudflare.com → Create Worker
 export default {
   async fetch(request, env, ctx) {
     const url = new URL(request.url);
     const target = url.searchParams.get('url');
     if (!target) return new Response('No target', {status:400});
     if (request.method === 'OPTIONS')
-      return new Response(null, {headers:{'Access-Control-Allow-Origin':'*','Access-Control-Allow-Headers':'*','Access-Control-Allow-Methods':'*'}});
+      return new Response(null, {headers:{
+        'Access-Control-Allow-Origin':'*',
+        'Access-Control-Allow-Headers':'*',
+        'Access-Control-Allow-Methods':'*'
+      }});
     const headers = new Headers();
     for (const [k,v] of request.headers.entries()) {
       if (k.toLowerCase() === 'x-mashov-cookie') headers.set('Cookie', v);
-      else if (!['host','origin'].includes(k.toLowerCase())) headers.set(k,v);
+      else if (!['host','origin','content-length'].includes(k.toLowerCase())) headers.set(k,v);
     }
-    const res = await fetch(target, {method:request.method, headers, body:request.body});
+    const body = request.method === 'GET' || request.method === 'HEAD' ? undefined : request.body;
+    const res = await fetch(target, {method:request.method, headers, body});
     const out = new Headers(res.headers);
     out.set('Access-Control-Allow-Origin','*');
     out.set('Access-Control-Expose-Headers','x-response-cookie');
-    const setCookie = res.headers.get('set-cookie') || '';
-    if (setCookie) out.set('x-response-cookie', setCookie);
+    /* Collect ALL Set-Cookie headers — extract only name=value (strip path/secure/etc) */
+    const cookies = [];
+    res.headers.forEach((v, k) => {
+      if (k.toLowerCase() === 'set-cookie') {
+        const nameVal = v.split(';')[0].trim();
+        if (nameVal) cookies.push(nameVal);
+      }
+    });
+    if (cookies.length) out.set('x-response-cookie', cookies.join('; '));
     return new Response(res.body, {status:res.status, headers:out});
   }
 };`.trim();
@@ -3570,8 +3582,8 @@ function openMashovWorkerModal() {
   openModal(`
     <div style="font-size:0.85rem;color:var(--muted);margin-bottom:14px;line-height:1.5;">
       ${_lang==='he'
-        ? 'כדי לתקשר עם משוב מהאפליקציה צריך ליצור Worker חינמי ב-Cloudflare (לוקח כ-3 דקות).'
-        : 'To connect to Mashov from the app, create a free Cloudflare Worker (takes ~3 minutes).'}
+        ? '⚠️ <strong>קוד Worker עודכן!</strong> אם כבר הגדרת Worker — החלף את הקוד בגרסה החדשה ולחץ Deploy שוב.'
+        : '⚠️ <strong>Worker code updated!</strong> If you already set up a Worker — replace the code with the new version and click Deploy again.'}
     </div>
     <div style="font-size:0.8rem;font-weight:700;margin-bottom:6px;">1. ${_lang==='he'?'עבור ל':'Go to'} <a href="https://workers.cloudflare.com" target="_blank" style="color:var(--blue);">workers.cloudflare.com</a></div>
     <div style="font-size:0.8rem;font-weight:700;margin-bottom:6px;">2. ${_lang==='he'?'צור Worker חדש, מחק הכל, הדבק את הקוד:':'Create a new Worker, clear it, paste this code:'}</div>
@@ -3747,6 +3759,21 @@ async function doMashovLogin(childId) {
   closeModal();
   showToast(t('mashovLoginOk'));
   switchTab('settings');
+
+  /* Auto-sync immediately after successful login */
+  setTimeout(async () => {
+    showToast(t('mashovSyncing'));
+    try {
+      const count = await MashovAPI.syncChild(childId);
+      showToast(count > 0
+        ? t('mashovImported').replace('{n}', count)
+        : t('mashovNoNew'));
+      switchTab('settings');
+    } catch(e) {
+      console.warn('[Mashov] auto-sync error:', e);
+      showToast(_lang==='he'?'⚠️ ההתחברות הצליחה — לחץ 🔄 סנכרן כדי לייבא שיעורי בית':'⚠️ Login OK — press 🔄 Sync to import homework');
+    }
+  }, 500);
 }
 
 async function doMashovSync(childId) {
