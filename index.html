@@ -2410,7 +2410,8 @@ const Views = {
         const gid = () => 'ch' + Math.random().toString(36).slice(2,7);
         const catId = gid();
         const doneCount  = mashovEntries.filter(e => e.comp.status === 'verified' || e.comp.status === 'done-awaiting').length;
-        const totalBonus = mashovEntries.reduce((s, e) => s + (e.task.points || 2), 0);
+        const mashovAcc  = MashovCreds.get(child.id);
+        const totalBonus = mashovAcc?.hwBonus ?? 10;
         const allHwDone  = doneCount === mashovEntries.length;
 
         const subjHtml = Object.entries(bySubj)
@@ -2782,7 +2783,8 @@ function doVerifyTask(compId) {
       return c && c.status === 'verified';
     });
     if (allDone && mashovTasks.length > 0) {
-      const bonus = mashovTasks.reduce((s, t) => s + (t.points || 2), 0);
+      const acc   = MashovCreds.get(comp.childId);
+      const bonus = acc?.hwBonus ?? 10;
       child.totalPoints += bonus;
       logHistory('task', '🏫', `${child.name} השלים את כל שיעורי הבית! (+${bonus} ⭐)`, child.id);
       State.save();
@@ -3770,7 +3772,7 @@ const MashovAPI = {
           assignedTo:  childId,
           category:    'homework',
           recurrence:  'one-time',
-          points:      2,
+          points:      0,          /* stars come from hwBonus, not per-task */
           timeOfDay:   'anytime',
           dueTime:     item.lessonDate || item.date || '',
           mashovId,
@@ -3931,6 +3933,14 @@ function openMashovConnectModal(childId) {
       <label class="form-label">${t('mashovYear')}</label>
       <input type="number" class="form-input" id="msh-year" value="${existing.year||new Date().getFullYear()}" min="2020" max="2030">
     </div>
+    <div class="form-group">
+      <label class="form-label">🏆 ${_lang==='he'?'כוכבים על השלמת כל שיעורי הבית':'Stars for completing all homework'}</label>
+      <input type="number" class="form-input" id="msh-hwbonus" value="${existing.hwBonus ?? 10}" min="1" max="100"
+        style="width:100px;" inputmode="numeric">
+      <div style="font-size:0.78rem;color:var(--muted);margin-top:4px;">
+        ${_lang==='he'?'הילד מקבל את הכוכבים רק אם הושלמו כל השיעורים':'Stars awarded only when every homework task is verified'}
+      </div>
+    </div>
     <span class="form-error" id="msh-err" style="display:none;"></span>
     <button class="btn btn-primary btn-full" id="msh-login-btn" onclick="doMashovLogin('${childId}')" ${!workerSet?'disabled':''}>
       ${t('mashovTestLogin')}
@@ -4001,10 +4011,11 @@ function selectMashovSchool(semel, name, dropdown) {
 }
 
 async function doMashovLogin(childId) {
-  const semel  = document.getElementById('msh-semel')?.value;
-  const userId = document.getElementById('msh-userid')?.value?.trim();
-  const pass   = document.getElementById('msh-pass')?.value;
-  const year   = document.getElementById('msh-year')?.value;
+  const semel     = document.getElementById('msh-semel')?.value;
+  const userId    = document.getElementById('msh-userid')?.value?.trim();
+  const pass      = document.getElementById('msh-pass')?.value;
+  const year      = document.getElementById('msh-year')?.value;
+  const hwBonus   = parseInt(document.getElementById('msh-hwbonus')?.value) || 10;
   const schoolName = document.getElementById('msh-school-input')?.value?.trim();
   const errEl  = document.getElementById('msh-err');
   const btn    = document.getElementById('msh-login-btn');
@@ -4059,6 +4070,7 @@ async function doMashovLogin(childId) {
     userId,
     password:      pass,
     year:          Number(year),
+    hwBonus,
     mashovUserId:  result.mashovUserId,
     sessionCookie: result.cookie,
     xsrfToken:     MashovAPI._csrfToken(result.cookie),
