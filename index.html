@@ -2446,10 +2446,9 @@ const Views = {
                      text-align:inherit;margin-bottom:6px;">
               <span class="hw-arr">▼</span>
               🏫 ${_lang==='he'?'שיעורי בית':'Homework'}
-              <span style="margin-inline-start:auto;font-size:0.78rem;font-weight:600;">
-                ${allHwDone
-                  ? `✅ +${totalBonus}⭐`
-                  : `${doneCount}/${mashovEntries.length} ✓ &nbsp;·&nbsp; 🏆 +${totalBonus}⭐`}
+              <span style="margin-inline-start:auto;display:flex;align-items:center;gap:6px;font-size:0.78rem;font-weight:600;">
+                <span>${doneCount}/${mashovEntries.length} ✓</span>
+                ${starsHTML(totalBonus)}
               </span>
             </button>
             <div id="${catId}">${subjHtml}</div>
@@ -2784,7 +2783,7 @@ function doVerifyTask(compId) {
     });
     if (allDone && mashovTasks.length > 0) {
       const acc   = MashovCreds.get(comp.childId);
-      const bonus = acc?.hwBonus ?? 10;
+      const bonus = acc?.hwBonus ?? 3;
       child.totalPoints += bonus;
       logHistory('task', '🏫', `${child.name} השלים את כל שיעורי הבית! (+${bonus} ⭐)`, child.id);
       State.save();
@@ -2895,6 +2894,11 @@ function openEditTask(taskId) {
 function selectTaskPoints(n) {
   document.getElementById('tm-points').value = n;
   document.querySelectorAll('#tm-stars .star-pick-btn').forEach((b, i) => b.classList.toggle('filled', i < n));
+}
+
+function selectMashovHwBonus(n) {
+  document.getElementById('msh-hwbonus').value = n;
+  document.querySelectorAll('#msh-hw-stars .star-pick-btn').forEach((b, i) => b.classList.toggle('filled', i < n));
 }
 
 function doSaveTask(editId) {
@@ -3935,10 +3939,12 @@ function openMashovConnectModal(childId) {
     </div>
     <div class="form-group">
       <label class="form-label">🏆 ${_lang==='he'?'כוכבים על השלמת כל שיעורי הבית':'Stars for completing all homework'}</label>
-      <input type="number" class="form-input" id="msh-hwbonus" value="${existing.hwBonus ?? 10}" min="1" max="100"
-        style="width:100px;" inputmode="numeric">
-      <div style="font-size:0.78rem;color:var(--muted);margin-top:4px;">
-        ${_lang==='he'?'הילד מקבל את הכוכבים רק אם הושלמו כל השיעורים':'Stars awarded only when every homework task is verified'}
+      <div class="star-picker" id="msh-hw-stars">
+        ${[1,2,3,4,5].map(n=>`<button type="button" class="star-pick-btn${n<=(existing.hwBonus??3)?' filled':''}" onclick="selectMashovHwBonus(${n})">★</button>`).join('')}
+      </div>
+      <input type="hidden" id="msh-hwbonus" value="${existing.hwBonus ?? 3}">
+      <div style="font-size:0.78rem;color:var(--muted);margin-top:6px;">
+        ${_lang==='he'?'הילד מקבל כוכבים רק אם הושלמו כל שיעורי הבית':'Stars awarded only when all homework tasks are verified'}
       </div>
     </div>
     <span class="form-error" id="msh-err" style="display:none;"></span>
@@ -4015,7 +4021,7 @@ async function doMashovLogin(childId) {
   const userId    = document.getElementById('msh-userid')?.value?.trim();
   const pass      = document.getElementById('msh-pass')?.value;
   const year      = document.getElementById('msh-year')?.value;
-  const hwBonus   = parseInt(document.getElementById('msh-hwbonus')?.value) || 10;
+  const hwBonus   = Math.min(5, Math.max(1, parseInt(document.getElementById('msh-hwbonus')?.value) || 3));
   const schoolName = document.getElementById('msh-school-input')?.value?.trim();
   const errEl  = document.getElementById('msh-err');
   const btn    = document.getElementById('msh-login-btn');
