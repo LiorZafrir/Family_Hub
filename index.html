@@ -801,6 +801,47 @@
     }
     .lang-btn.active { background: white; color: var(--coral); }
 
+    /* ===== COLLAPSIBLE HOMEWORK GROUPS ===== */
+    details.hw-category, details.hw-subject { margin-bottom: 8px; }
+
+    details.hw-category > summary, details.hw-subject > summary {
+      list-style: none;
+      cursor: pointer;
+      user-select: none;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    details.hw-category > summary::-webkit-details-marker,
+    details.hw-subject > summary::-webkit-details-marker { display: none; }
+
+    details.hw-category > summary {
+      font-family: 'Nunito', sans-serif;
+      font-weight: 800;
+      font-size: 1.05rem;
+      background: linear-gradient(135deg, #DBEAFE, #EFF6FF);
+      border-radius: var(--radius-sm);
+      padding: 12px 14px;
+      color: #1D4ED8;
+    }
+    details.hw-category > summary::before { content: '▶'; font-size: 0.7rem; transition: transform 0.2s; }
+    details.hw-category[open] > summary::before { transform: rotate(90deg); }
+
+    details.hw-subject { margin: 0 0 4px 0; }
+    details.hw-subject > summary {
+      font-family: 'Nunito', sans-serif;
+      font-weight: 700;
+      font-size: 0.92rem;
+      background: var(--light);
+      border-radius: var(--radius-sm);
+      padding: 9px 12px;
+      color: var(--text);
+      border-inline-start: 3px solid var(--blue);
+    }
+    details.hw-subject > summary::before { content: '▶'; font-size: 0.6rem; color: var(--blue); transition: transform 0.2s; }
+    details.hw-subject[open] > summary::before { transform: rotate(90deg); }
+    details.hw-subject > .hw-subject-tasks { padding: 4px 0 4px 8px; }
+
     /* ===== MASHOV STYLES ===== */
     .mashov-child-row {
       display: flex; align-items: center; gap: 10px;
@@ -1853,7 +1894,7 @@ const Views = {
         </div>`;
       };
 
-      /* When showing Mashov homework — group by subject */
+      /* When showing Mashov homework — collapsible category + collapsible subjects */
       let cards;
       if (tf === 'mashov') {
         const bySubject = {};
@@ -1862,17 +1903,28 @@ const Views = {
           if (!bySubject[subj]) bySubject[subj] = [];
           bySubject[subj].push(task);
         });
-        cards = Object.entries(bySubject)
+
+        const subjGroups = Object.entries(bySubject)
           .sort(([a],[b]) => a.localeCompare(b, 'he'))
-          .map(([subj, subjTasks]) => `
-            <div style="margin-bottom:6px;">
-              <div style="font-family:'Nunito',sans-serif;font-weight:800;font-size:1rem;
-                          color:var(--blue);padding:8px 4px 4px;border-bottom:2px solid var(--border);
-                          margin-bottom:8px;">
-                📚 ${esc(subj)} <span style="font-size:0.75rem;color:var(--muted);font-weight:600;">(${subjTasks.length})</span>
-              </div>
-              ${subjTasks.sort((a,b)=>(a.dueTime||'').localeCompare(b.dueTime||'')).map(renderCard).join('')}
-            </div>`).join('');
+          .map(([subj, subjTasks], i) => {
+            const sorted = subjTasks.sort((a,b) => (a.dueTime||'').localeCompare(b.dueTime||''));
+            /* First subject open by default, rest collapsed */
+            return `<details class="hw-subject" ${i===0?'open':''}>
+              <summary>
+                📖 ${esc(subj)}
+                <span style="font-size:0.75rem;color:var(--muted);font-weight:600;margin-${_lang==='he'?'right':'left'}:auto;">(${subjTasks.length})</span>
+              </summary>
+              <div class="hw-subject-tasks">${sorted.map(renderCard).join('')}</div>
+            </details>`;
+          }).join('');
+
+        cards = `<details class="hw-category" open>
+          <summary>
+            🏫 ${_lang==='he'?'שיעורי בית':'Homework'}
+            <span style="font-size:0.78rem;font-weight:600;margin-${_lang==='he'?'right':'left'}:auto;">${tasks.length} ${_lang==='he'?'משימות':'tasks'}</span>
+          </summary>
+          <div style="padding-top:8px;">${subjGroups}</div>
+        </details>`;
       } else {
         cards = tasks.map(renderCard).join('');
       }
@@ -3533,10 +3585,23 @@ const MashovAPI = {
     const futureD = new Date(todayD); futureD.setDate(futureD.getDate() + 14);
     const to      = futureD.toISOString().slice(0,10);
 
-    /* Always go back 3 days — catch recent assignments without pulling old history */
-    const pastD = new Date(todayD); pastD.setDate(pastD.getDate() - 3);
-    const from     = pastD.toISOString().slice(0,10);
-    const wFrom    = from;
+    /* Fixed start date — only import homework from this date onward */
+    const MASHOV_START = '2026-05-04';
+    const from  = MASHOV_START;
+    const wFrom = MASHOV_START;
+
+    /* Remove any previously imported Mashov tasks before the start date */
+    const beforeCount = State.data.tasks.length;
+    State.data.tasks = State.data.tasks.filter(tk =>
+      tk.source !== 'mashov' ||           // keep non-mashov tasks
+      (tk.assignedTo !== childId) ||      // keep other children's mashov tasks
+      !tk.dueTime ||                      // keep if no date (safety)
+      tk.dueTime >= MASHOV_START          // keep only from start date
+    );
+    /* Also remove completions for deleted tasks */
+    const validIds = new Set(State.data.tasks.map(tk => tk.id));
+    State.data.taskCompletions = State.data.taskCompletions.filter(c => validIds.has(c.taskId));
+    console.log('[Mashov] cleaned', beforeCount - State.data.tasks.length, 'old tasks for child', childId);
 
     let importedCount = 0;
     const apiErrors = [];
