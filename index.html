@@ -1904,27 +1904,45 @@ const Views = {
           bySubject[subj].push(task);
         });
 
+        const gid = () => 'g' + Math.random().toString(36).slice(2,7);
+        const catId = gid();
+
         const subjGroups = Object.entries(bySubject)
           .sort(([a],[b]) => a.localeCompare(b, 'he'))
           .map(([subj, subjTasks], i) => {
+            const sid = gid();
             const sorted = subjTasks.sort((a,b) => (a.dueTime||'').localeCompare(b.dueTime||''));
-            /* First subject open by default, rest collapsed */
-            return `<details class="hw-subject" ${i===0?'open':''}>
-              <summary>
-                📖 ${esc(subj)}
-                <span style="font-size:0.75rem;color:var(--muted);font-weight:600;margin-${_lang==='he'?'right':'left'}:auto;">(${subjTasks.length})</span>
-              </summary>
-              <div class="hw-subject-tasks">${sorted.map(renderCard).join('')}</div>
-            </details>`;
+            const isOpen = i === 0;
+            return `
+              <div style="margin-bottom:4px;">
+                <button onclick="(function(b,c){var o=c.style.display==='none';c.style.display=o?'block':'none';b.querySelector('.hw-arr').textContent=o?'▼':'▶';})(this,document.getElementById('${sid}'))"
+                  style="width:100%;display:flex;align-items:center;gap:8px;background:var(--light);
+                         border:none;border-radius:var(--radius-sm);padding:9px 12px;cursor:pointer;
+                         font-family:'Nunito',sans-serif;font-weight:700;font-size:0.92rem;color:var(--text);
+                         border-inline-start:3px solid var(--blue);text-align:inherit;">
+                  <span class="hw-arr">${isOpen?'▼':'▶'}</span>
+                  📖 ${esc(subj)}
+                  <span style="margin-inline-start:auto;font-size:0.75rem;color:var(--muted);">(${subjTasks.length})</span>
+                </button>
+                <div id="${sid}" style="display:${isOpen?'block':'none'};padding:4px 0 4px 8px;">
+                  ${sorted.map(renderCard).join('')}
+                </div>
+              </div>`;
           }).join('');
 
-        cards = `<details class="hw-category" open>
-          <summary>
+        const isAllOpen = true;
+        cards = `
+          <button onclick="(function(b,c){var o=c.style.display==='none';c.style.display=o?'block':'none';b.querySelector('.hw-arr').textContent=o?'▼':'▶';})(this,document.getElementById('${catId}'))"
+            style="width:100%;display:flex;align-items:center;gap:8px;
+                   background:linear-gradient(135deg,#DBEAFE,#EFF6FF);
+                   border:none;border-radius:var(--radius-sm);padding:12px 14px;cursor:pointer;
+                   font-family:'Nunito',sans-serif;font-weight:800;font-size:1.05rem;color:#1D4ED8;
+                   text-align:inherit;margin-bottom:8px;">
+            <span class="hw-arr">▼</span>
             🏫 ${_lang==='he'?'שיעורי בית':'Homework'}
-            <span style="font-size:0.78rem;font-weight:600;margin-${_lang==='he'?'right':'left'}:auto;">${tasks.length} ${_lang==='he'?'משימות':'tasks'}</span>
-          </summary>
-          <div style="padding-top:8px;">${subjGroups}</div>
-        </details>`;
+            <span style="margin-inline-start:auto;font-size:0.78rem;font-weight:600;">${tasks.length} ${_lang==='he'?'משימות':'tasks'}</span>
+          </button>
+          <div id="${catId}">${subjGroups}</div>`;
       } else {
         cards = tasks.map(renderCard).join('');
       }
@@ -3590,18 +3608,15 @@ const MashovAPI = {
     const from  = MASHOV_START;
     const wFrom = MASHOV_START;
 
-    /* Remove any previously imported Mashov tasks before the start date */
+    /* Wipe ALL previously imported Mashov tasks for this child — start fresh */
     const beforeCount = State.data.tasks.length;
     State.data.tasks = State.data.tasks.filter(tk =>
-      tk.source !== 'mashov' ||           // keep non-mashov tasks
-      (tk.assignedTo !== childId) ||      // keep other children's mashov tasks
-      !tk.dueTime ||                      // keep if no date (safety)
-      tk.dueTime >= MASHOV_START          // keep only from start date
+      !(tk.source === 'mashov' && tk.assignedTo === childId)
     );
-    /* Also remove completions for deleted tasks */
+    /* Remove completions for deleted tasks */
     const validIds = new Set(State.data.tasks.map(tk => tk.id));
     State.data.taskCompletions = State.data.taskCompletions.filter(c => validIds.has(c.taskId));
-    console.log('[Mashov] cleaned', beforeCount - State.data.tasks.length, 'old tasks for child', childId);
+    console.log('[Mashov] wiped', beforeCount - State.data.tasks.length, 'old tasks for child', childId);
 
     let importedCount = 0;
     const apiErrors = [];
@@ -3624,9 +3639,12 @@ const MashovAPI = {
       console.log('[Mashov] homework first item keys:', hw.length ? Object.keys(hw[0]).join(', ') : 'EMPTY');
       if (hw.length) console.log('[Mashov] first item values:', JSON.stringify(hw[0]));
       (hw || []).forEach(item => {
+        /* Skip lessons before our fixed start date */
+        const lessonDate = item.lessonDate || item.date || '';
+        if (lessonDate && lessonDate < MASHOV_START) return;
         const text = hwText(item);
         if (!text) return;
-        const mashovId = `${item.lessonId}_${item.lessonDate}`;
+        const mashovId = `${item.lessonId}_${lessonDate}`;
         const already  = State.data.tasks.some(tk => tk.mashovId === mashovId);
         if (already) return;
         State.data.tasks.push({
