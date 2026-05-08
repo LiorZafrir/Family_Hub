@@ -1805,7 +1805,8 @@ const Views = {
         </div>
         <button class="fab" onclick="openAddTask()">+</button>`;
 
-      const cards = tasks.map(task => {
+      /* Helper: render one task card */
+      const renderCard = task => {
         const assigneeName = task.assignedTo === 'all'
           ? t('everyone')
           : esc((State.getChild(task.assignedTo) || {}).name || '?');
@@ -1816,7 +1817,6 @@ const Views = {
         const verifiedComps = State.data.taskCompletions.filter(
           c => c.taskId === task.id && c.date === periodKey && c.status === 'verified'
         );
-
         return `<div class="task-card">
           <div class="task-card-header">
             <span class="task-cat-icon">${CAT_EMOJI[task.category]||'✨'}</span>
@@ -1833,7 +1833,7 @@ const Views = {
           <div class="task-card-meta">
             <span class="badge badge-${task.category}">${catLabel(task.category)}</span>
             <span class="badge badge-${task.recurrence}">${{daily:t('recDaily'),weekly:t('recWeekly'),'one-time':t('recOneTime')}[task.recurrence]||task.recurrence}</span>
-            ${task.source==='mashov'?'<span style="font-size:0.72rem;background:#DBEAFE;color:#1D4ED8;border-radius:50px;padding:1px 7px;font-weight:700;">🏫 Mashov</span>':''}
+            ${task.source==='mashov'?'<span style="font-size:0.72rem;background:#DBEAFE;color:#1D4ED8;border-radius:50px;padding:1px 7px;font-weight:700;">🏫</span>':''}
             <span style="font-size:0.78rem;color:var(--muted);">👤 ${assigneeName}</span>
             ${starsHTML(task.points)}
           </div>
@@ -1851,7 +1851,31 @@ const Views = {
               }).join('')}
             </div>` : ''}
         </div>`;
-      }).join('');
+      };
+
+      /* When showing Mashov homework — group by subject */
+      let cards;
+      if (tf === 'mashov') {
+        const bySubject = {};
+        tasks.forEach(task => {
+          const subj = task.title.includes(':') ? task.title.split(':')[0].trim() : (_lang==='he'?'כללי':'General');
+          if (!bySubject[subj]) bySubject[subj] = [];
+          bySubject[subj].push(task);
+        });
+        cards = Object.entries(bySubject)
+          .sort(([a],[b]) => a.localeCompare(b, 'he'))
+          .map(([subj, subjTasks]) => `
+            <div style="margin-bottom:6px;">
+              <div style="font-family:'Nunito',sans-serif;font-weight:800;font-size:1rem;
+                          color:var(--blue);padding:8px 4px 4px;border-bottom:2px solid var(--border);
+                          margin-bottom:8px;">
+                📚 ${esc(subj)} <span style="font-size:0.75rem;color:var(--muted);font-weight:600;">(${subjTasks.length})</span>
+              </div>
+              ${subjTasks.sort((a,b)=>(a.dueTime||'').localeCompare(b.dueTime||'')).map(renderCard).join('')}
+            </div>`).join('');
+      } else {
+        cards = tasks.map(renderCard).join('');
+      }
 
       return `<div class="section-pad">${filterBar}${cards}<div class="spacer80"></div></div>
               <button class="fab" onclick="openAddTask()">+</button>`;
@@ -3453,7 +3477,7 @@ const MashovAPI = {
   _csrfToken(cookieStr) {
     const c = this._parseCookies(cookieStr);
     /* Try known names in priority order */
-    const val = c['XSRF-TOKEN'] || c['csrf_token'] || c['X-Csrf-Token'] ||
+    const val = c['Csrf-Token'] || c['XSRF-TOKEN'] || c['csrf_token'] || c['X-Csrf-Token'] ||
       Object.entries(c).find(([k]) =>
         k.toLowerCase().includes('xsrf') ||
         k.toLowerCase().includes('csrf') ||
@@ -3509,9 +3533,8 @@ const MashovAPI = {
     const futureD = new Date(todayD); futureD.setDate(futureD.getDate() + 14);
     const to      = futureD.toISOString().slice(0,10);
 
-    /* First sync: go back 30 days. Subsequent syncs: 7 days */
-    const daysBack = acc.lastSync ? 7 : 30;
-    const pastD    = new Date(todayD); pastD.setDate(pastD.getDate() - daysBack);
+    /* Always go back 3 days — catch recent assignments without pulling old history */
+    const pastD = new Date(todayD); pastD.setDate(pastD.getDate() - 3);
     const from     = pastD.toISOString().slice(0,10);
     const wFrom    = from;
 
@@ -3520,7 +3543,7 @@ const MashovAPI = {
 
     /* Helper: extract homework text regardless of field name used by API */
     const hwText = item =>
-      (item.homework || item.homeworkDescription || item.body ||
+      (item.homework || item.remark || item.homeworkDescription || item.body ||
        item.lessonBody || item.description || item.content || '').trim();
 
     /* ---- Homework → Tasks ---- */
@@ -3534,6 +3557,7 @@ const MashovAPI = {
                : [];
       console.log('[Mashov] homework response type:', typeof hwRaw, Array.isArray(hwRaw) ? 'array len='+hwRaw.length : JSON.stringify(hwRaw).slice(0,300));
       console.log('[Mashov] homework first item keys:', hw.length ? Object.keys(hw[0]).join(', ') : 'EMPTY');
+      if (hw.length) console.log('[Mashov] first item values:', JSON.stringify(hw[0]));
       (hw || []).forEach(item => {
         const text = hwText(item);
         if (!text) return;
