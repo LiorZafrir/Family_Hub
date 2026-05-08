@@ -3439,15 +3439,25 @@ const MashovAPI = {
 
   /* Generic authenticated GET — includes headers Mashov requires */
   async _authGet(path, acc) {
+    /* Extract XSRF token from cookie string if present */
+    const xsrf = (acc.sessionCookie || '').split(';')
+      .map(c => c.trim()).find(c => c.startsWith('XSRF-TOKEN=') || c.startsWith('.AspNetCore.Antiforgery'));
+    const xsrfVal = xsrf ? xsrf.split('=').slice(1).join('=') : '';
+
     const res = await this._fetch(this.BASE + path, {
       headers: {
         'Accept': 'application/json, text/plain, */*',
         'Referer': 'https://web.mashov.info/',
-        'X-Requested-With': 'XMLHttpRequest'
+        'X-Requested-With': 'XMLHttpRequest',
+        ...(xsrfVal ? { 'X-XSRF-TOKEN': xsrfVal } : {})
       }
     }, acc.sessionCookie || '');
     console.log('[Mashov] GET', path, '→', res.status);
-    if (!res.ok) throw new Error('HTTP ' + res.status);
+    if (!res.ok) {
+      const errBody = await res.text().catch(() => '');
+      console.warn('[Mashov] error body:', errBody.slice(0, 400));
+      throw new Error('HTTP ' + res.status);
+    }
     return res.json();
   },
 
