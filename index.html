@@ -1087,7 +1087,7 @@ const STRINGS = {
     mashovImported:'📚 {n} homework tasks imported',
     mashovNoNew:'No new homework found',
     mashovGrades:'Recent grades', mashovAttendance:'Attendance this week',
-    mashovCorsNote:'Data passes through corsproxy.io (external CORS proxy)',
+    mashovCorsNote:'Data goes through your Cloudflare Worker (or a public CORS proxy for school search)',
     mashovSelectSchool:'Select school from list',
     mashovSearching:'Searching...',
   },
@@ -1173,7 +1173,7 @@ const STRINGS = {
     mashovImported:'📚 יובאו {n} שיעורי בית',
     mashovNoNew:'לא נמצאו שיעורי בית חדשים',
     mashovGrades:'ציונים אחרונים', mashovAttendance:'נוכחות השבוע',
-    mashovCorsNote:'הנתונים עוברים דרך corsproxy.io (שרת CORS חיצוני)',
+    mashovCorsNote:'הנתונים עוברים דרך ה-Worker שלך ב-Cloudflare (או proxy ציבורי לחיפוש בתי ספר)',
     mashovSelectSchool:'בחר בית ספר מהרשימה',
     mashovSearching:'מחפש...',
   }
@@ -3330,17 +3330,46 @@ const MashovAPI = {
     return res;
   },
 
-  /* Unauthenticated GET through public proxy */
+  /* Unauthenticated GET — tries Worker first, then multiple public proxies */
   async _publicGet(path) {
-    const res = await fetch(this.PROXY_PUBLIC + encodeURIComponent(this.BASE + path));
-    if (!res.ok) throw new Error('HTTP ' + res.status);
-    return res.json();
+    /* 1. If Worker is configured, use it (most reliable) */
+    const worker = this._workerUrl();
+    if (worker) {
+      const res = await this._fetch(this.BASE + path, {});
+      if (!res.ok) throw new Error('HTTP ' + res.status);
+      return res.json();
+    }
+    /* 2. Try a chain of public CORS proxies */
+    const proxies = [
+      u => `https://corsproxy.io/?url=${encodeURIComponent(u)}`,
+      u => `https://api.allorigins.win/raw?url=${encodeURIComponent(u)}`,
+      u => `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(u)}`,
+    ];
+    for (const makeUrl of proxies) {
+      try {
+        const ctrl = new AbortController();
+        const timer = setTimeout(() => ctrl.abort(), 6000);
+        const res = await fetch(makeUrl(this.BASE + path), { signal: ctrl.signal });
+        clearTimeout(timer);
+        if (res.ok) {
+          const text = await res.text();
+          /* Reject HTML error pages */
+          if (text.trim().startsWith('<')) continue;
+          return JSON.parse(text);
+        }
+      } catch(e) { /* try next proxy */ }
+    }
+    throw new Error('SEARCH_UNAVAILABLE');
   },
 
   /* Search schools — no auth needed */
   async searchSchools(query) {
     if (!this._schools) {
-      this._schools = await this._publicGet('/schools');
+      /* Reset on failure so next call retries */
+      let data;
+      try { data = await this._publicGet('/schools'); }
+      catch(e) { throw e; }
+      this._schools = data;
     }
     const q = query.trim().toLowerCase();
     return (this._schools || [])
@@ -3534,7 +3563,7 @@ function openMashovConnectModal(childId) {
       <button class="btn btn-ghost btn-sm" onclick="closeModal();openMashovWorkerModal();" style="margin-${_lang==='he'?'right':'left'}:8px;">${_lang==='he'?'הגדר →':'Setup →'}</button>
     </div>` : ''}
     <div class="school-autocomplete">
-      <label class="form-label">${t('mashovSchool')}</label>
+      <label class="form-label">${t('mashovSchool')} <span style="font-weight:400;font-size:0.78rem;color:var(--muted);">${_lang==='he'?'(הקלד שם או מספר סמל)':'(type name or semel number)'}</span></label>
       <input type="text" class="form-input" id="msh-school-input"
         value="${esc(existing.schoolName||'')}"
         placeholder="${t('mashovSchoolPlaceholder')}"
@@ -3568,20 +3597,47 @@ function mashovSchoolSearch(val) {
   const dd = document.getElementById('msh-school-dropdown');
   if (!dd) return;
   if (val.length < 2) { dd.style.display = 'none'; return; }
+
+  /* If the user typed a pure number ≥4 digits, treat it as a direct semel */
+  if (/^\d{4,7}$/.test(val.trim())) {
+    const sem = document.getElementById('msh-semel');
+    if (sem) sem.value = val.trim();
+    dd.style.display = 'block';
+    dd.innerHTML = `<div class="school-dropdown-item" style="cursor:pointer;" onclick="selectMashovSchool('${val.trim()}','${val.trim()}',this.parentElement)">
+      ✅ ${_lang==='he'?`השתמש בסמל ${val.trim()}`:`Use semel ${val.trim()}`}
+    </div>`;
+    return;
+  }
+
   dd.style.display = 'block';
   dd.innerHTML = `<div class="school-dropdown-item" style="color:var(--muted);">${t('mashovSearching')}</div>`;
   _mashovSchoolTimer = setTimeout(async () => {
     try {
       const results = await MashovAPI.searchSchools(val);
       if (!results.length) {
-        dd.innerHTML = `<div class="school-dropdown-item" style="color:var(--muted);">${_lang==='he'?'לא נמצאו תוצאות':'No results'}</div>`;
+        dd.innerHTML = `<div class="school-dropdown-item" style="color:var(--muted);">${_lang==='he'?'לא נמצאו תוצאות — נסה להקליד מספר סמל':'No results — try typing the semel number'}</div>`;
         return;
       }
       dd.innerHTML = results.map(s =>
         `<div class="school-dropdown-item" onclick="selectMashovSchool(${s.semelMosad||s.semel},'${esc(s.name)}',this.parentElement)">${esc(s.name)}</div>`
       ).join('');
     } catch(e) {
-      dd.innerHTML = `<div class="school-dropdown-item" style="color:var(--coral);">${_lang==='he'?'שגיאה בחיפוש':'Search error'}</div>`;
+      if (e.message === 'SEARCH_UNAVAILABLE') {
+        /* All proxies failed — offer manual semel entry */
+        dd.innerHTML = `
+          <div class="school-dropdown-item" style="color:var(--coral);cursor:default;">
+            ${_lang==='he'?'החיפוש אינו זמין כעת.':'School search unavailable.'}
+            ${_lang==='he'?'הזן מספר סמל בית ספר ישירות:':'Enter school semel number directly:'}
+          </div>
+          <div class="school-dropdown-item" style="padding:10px 14px;cursor:default;">
+            <input type="number" id="msh-manual-semel"
+              placeholder="${_lang==='he'?'מספר סמל (לדוג. 412345)':'Semel number (e.g. 412345)'}"
+              style="width:100%;padding:7px 10px;border:1px solid var(--border);border-radius:8px;font-size:14px;"
+              oninput="if(this.value.length>=4){selectMashovSchool(this.value,this.value,this.closest('.school-dropdown'))}">
+          </div>`;
+      } else {
+        dd.innerHTML = `<div class="school-dropdown-item" style="color:var(--coral);">${_lang==='he'?'שגיאה בחיפוש':'Search error'}: ${e.message}</div>`;
+      }
     }
   }, 400);
 }
@@ -3589,9 +3645,12 @@ function mashovSchoolSearch(val) {
 function selectMashovSchool(semel, name, dropdown) {
   const inp = document.getElementById('msh-school-input');
   const sem = document.getElementById('msh-semel');
-  if (inp) inp.value = name;
+  /* If name === semel it's a manual entry — show a friendly label */
+  const displayName = (name && name !== String(semel)) ? name : (_lang==='he' ? `סמל ${semel}` : `Semel ${semel}`);
+  if (inp) inp.value = displayName;
   if (sem) sem.value = semel;
-  if (dropdown) dropdown.style.display = 'none';
+  /* Only close dropdown when a real selection was made (name !== semel means from list) */
+  if (dropdown && name !== String(semel)) dropdown.style.display = 'none';
 }
 
 async function doMashovLogin(childId) {
