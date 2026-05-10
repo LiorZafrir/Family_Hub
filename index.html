@@ -2110,6 +2110,16 @@ const Views = {
               <button class="btn btn-danger btn-sm" onclick="doRemoveChild('${child.id}')">${t('removeBtn')}</button>
               <button class="btn btn-sm" style="background:#FFF3CD;color:#92400E;border:1px solid #FDE68A;"
                 onclick="openDeductStars('${child.id}')">➖⭐ ${_lang==='he'?'הורד כוכבים':'Deduct stars'}</button>
+              <button class="btn btn-sm" style="background:#D1FAE5;color:#065F46;border:1px solid #6EE7B7;"
+                onclick="openBonusStars('${child.id}')">➕⭐ ${_lang==='he'?'הוסף כוכבים':'Bonus stars'}</button>
+            </div>
+            <div style="margin-top:8px;display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+              <label class="btn btn-ghost btn-sm" style="cursor:pointer;margin:0;">
+                📷 ${_lang==='he'?'העלה מערכת שעות':'Upload schedule'}
+                <input type="file" accept="image/*" style="display:none;"
+                  onchange="if(this.files[0])compressAndStoreSchedule('${child.id}',this.files[0])">
+              </label>
+              ${ScheduleImages.get(child.id) ? `<button class="btn btn-ghost btn-sm" onclick="openScheduleViewer('${child.id}')">📅 ${_lang==='he'?'הצג מערכת שעות':'View schedule'}</button>` : ''}
             </div>
           </div>`;
         }).join('')}
@@ -2535,6 +2545,16 @@ const Views = {
                 class="logout-btn" style="background:rgba(255,255,255,0.2);border:none;color:white;">
                 📬${pendingReqCount ? ' 🔴' : ''}
               </button>
+              ${ScheduleImages.get(child.id) ? `
+              <button onclick="openScheduleViewer('${child.id}')"
+                class="logout-btn" style="background:rgba(255,255,255,0.2);border:none;color:white;">
+                📅
+              </button>` : ''}
+              ${MashovCreds.get(child.id) ? `
+              <button onclick="doChildRefreshMashov('${child.id}')" id="child-mashov-refresh-${child.id}"
+                class="logout-btn" style="background:rgba(255,255,255,0.2);border:none;color:white;" title="${_lang==='he'?'רענן שיעורי בית':'Refresh homework'}">
+                🔄
+              </button>` : ''}
             </div>
           </div>
           <div class="child-header-info">
@@ -2874,6 +2894,69 @@ function doVerifyTask(compId) {
       : `⭐ ${child.name} earned ${task.points} star${task.points > 1 ? 's' : ''}!`);
   }
   switchTab(Views['parent-dashboard']._tab);
+}
+
+/* ---- BONUS STARS ---- */
+function openBonusStars(childId) {
+  const child = State.getChild(childId);
+  if (!child) return;
+  openModal(`
+    <div style="text-align:center;margin-bottom:16px;">
+      <div style="font-size:2rem;">${child.emoji}</div>
+      <div style="font-family:'Nunito',sans-serif;font-weight:800;font-size:1.1rem;">${esc(child.name)}</div>
+      <div style="font-size:0.85rem;color:var(--muted);margin-top:2px;">
+        ${_lang==='he'?'יתרה נוכחית:':'Current balance:'} ⭐ ${child.totalPoints}
+      </div>
+    </div>
+    <div class="form-group">
+      <label class="form-label">${_lang==='he'?'כמה כוכבים להוסיף?':'How many bonus stars?'}</label>
+      <div class="star-picker" id="bon-stars" style="justify-content:center;gap:6px;">
+        ${[1,2,3,4,5].map(n=>`<button type="button" class="star-pick-btn${n<=1?' filled':''}"
+          onclick="selectBonusStars(${n})" style="font-size:1.8rem;">★</button>`).join('')}
+      </div>
+      <input type="hidden" id="bon-amount" value="1">
+      <div id="bon-preview" style="text-align:center;margin-top:8px;font-size:0.82rem;color:var(--green);font-weight:600;">
+        ⭐ ${child.totalPoints} → ⭐ ${child.totalPoints + 1}
+      </div>
+    </div>
+    <div class="form-group">
+      <label class="form-label">${_lang==='he'?'סיבה (אופציונלי):':'Reason (optional):'}</label>
+      <input type="text" class="form-input" id="bon-reason"
+        placeholder="${_lang==='he'?'למשל: עזרה בבית':'e.g. Helped at home'}">
+    </div>
+    <button class="btn btn-primary btn-full" style="background:var(--green);"
+      onclick="doBonusStars('${childId}')">
+      ➕⭐ ${_lang==='he'?'הוסף כוכבים':'Add bonus stars'}
+    </button>
+  `, `➕⭐ ${_lang==='he'?'הוספת כוכבים':'Bonus stars'} — ${child.emoji} ${esc(child.name)}`);
+  window._bonusChildId = childId;
+}
+
+function selectBonusStars(n) {
+  document.getElementById('bon-amount').value = n;
+  document.querySelectorAll('#bon-stars .star-pick-btn').forEach((b, i) => b.classList.toggle('filled', i < n));
+  const child = State.getChild(window._bonusChildId);
+  if (child) {
+    const preview = document.getElementById('bon-preview');
+    if (preview) preview.textContent = `⭐ ${child.totalPoints} → ⭐ ${child.totalPoints + n}`;
+  }
+}
+
+function doBonusStars(childId) {
+  const child = State.getChild(childId);
+  if (!child) return;
+  const amount = parseInt(document.getElementById('bon-amount')?.value) || 1;
+  const reason = document.getElementById('bon-reason')?.value.trim() || '';
+  child.totalPoints += amount;
+  const desc = (_lang==='he'
+    ? `נוספו ${amount} כוכבי בונוס ל-${child.name}`
+    : `Added ${amount} bonus stars to ${child.name}`)
+    + (reason ? ` — ${reason}` : '');
+  logHistory('task', '➕', desc, childId);
+  State.save();
+  closeModal();
+  showToast(`➕⭐ ${desc}`);
+  switchTab('children');
 }
 
 /* ---- DEDUCT STARS ---- */
@@ -3675,6 +3758,52 @@ const MashovCreds = {
   setWorkerUrl(url) { const d = this.load(); d.workerUrl = url; this.save(d); }
 };
 
+/* =====================================================================
+   SCHEDULE IMAGES  (localStorage per child, base64 compressed)
+===================================================================== */
+const ScheduleImages = {
+  key: id => 'family_sched_' + id,
+  get(childId)         { return localStorage.getItem(this.key(childId)); },
+  set(childId, dataUrl){ try { localStorage.setItem(this.key(childId), dataUrl); return true; } catch(e) { return false; } },
+  remove(childId)      { localStorage.removeItem(this.key(childId)); }
+};
+
+function compressAndStoreSchedule(childId, file) {
+  const reader = new FileReader();
+  reader.onload = e => {
+    const img = new Image();
+    img.onload = () => {
+      const MAX = 1200;
+      const scale = Math.min(1, MAX / Math.max(img.width, img.height));
+      const w = Math.round(img.width * scale), h = Math.round(img.height * scale);
+      const canvas = document.createElement('canvas');
+      canvas.width = w; canvas.height = h;
+      canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+      const dataUrl = canvas.toDataURL('image/jpeg', 0.82);
+      const ok = ScheduleImages.set(childId, dataUrl);
+      if (!ok) { showToast(_lang==='he'?'⚠️ התמונה גדולה מדי, נסה תמונה קטנה יותר':'⚠️ Image too large'); return; }
+      showToast(_lang==='he'?'📅 מערכת השעות נשמרה!':'📅 Schedule saved!');
+      switchTab('children');
+    };
+    img.src = e.target.result;
+  };
+  reader.readAsDataURL(file);
+}
+
+function openScheduleViewer(childId) {
+  const img = ScheduleImages.get(childId);
+  const child = State.getChild(childId);
+  if (!img) { showToast(_lang==='he'?'אין מערכת שעות שמורה':'No schedule saved'); return; }
+  openModal(
+    `<img src="${img}" style="width:100%;border-radius:8px;display:block;">
+     <button class="btn btn-danger btn-full" style="margin-top:10px;"
+       onclick="ScheduleImages.remove('${childId}');closeModal();showToast('🗑️ נמחק');switchTab('children');">
+       🗑️ ${_lang==='he'?'מחק תמונה':'Delete image'}
+     </button>`,
+    `📅 ${child ? child.emoji+' '+esc(child.name) : ''}`
+  );
+}
+
 /* --- API module --- */
 const MashovAPI = {
   BASE: 'https://web.mashov.info/api',
@@ -3870,15 +3999,27 @@ const MashovAPI = {
     const from  = MASHOV_START;
     const wFrom = MASHOV_START;
 
-    /* Wipe ALL previously imported Mashov tasks for this child — start fresh */
+    /* Smart sync: preserve tasks the child already started (done-awaiting / verified).
+       Only remove pending/untouched tasks so completed work isn't lost. */
+    const existingMashovTasks = State.data.tasks.filter(tk =>
+      tk.source === 'mashov' && tk.assignedTo === childId
+    );
+    /* mashovIds that have an active completion (child did something) */
+    const doneMashovIds = new Set(
+      existingMashovTasks
+        .filter(tk => State.data.taskCompletions.some(c =>
+          c.taskId === tk.id && (c.status === 'done-awaiting' || c.status === 'verified')
+        ))
+        .map(tk => tk.mashovId)
+    );
+    /* Remove only tasks that are still pending (untouched) */
     const beforeCount = State.data.tasks.length;
     State.data.tasks = State.data.tasks.filter(tk =>
-      !(tk.source === 'mashov' && tk.assignedTo === childId)
+      !(tk.source === 'mashov' && tk.assignedTo === childId && !doneMashovIds.has(tk.mashovId))
     );
-    /* Remove completions for deleted tasks */
     const validIds = new Set(State.data.tasks.map(tk => tk.id));
     State.data.taskCompletions = State.data.taskCompletions.filter(c => validIds.has(c.taskId));
-    console.log('[Mashov] wiped', beforeCount - State.data.tasks.length, 'old tasks for child', childId);
+    console.log('[Mashov] smart-wiped', beforeCount - State.data.tasks.length, 'pending tasks; kept', doneMashovIds.size, 'completed for child', childId);
 
     let importedCount = 0;
     const apiErrors = [];
@@ -3910,8 +4051,11 @@ const MashovAPI = {
         const text = hwText(item);
         if (!text) return;
         const mashovId = `${item.lessonId}_${lessonDate}`;
-        const already  = State.data.tasks.some(tk => tk.mashovId === mashovId);
+        /* Skip if already in the system (either kept as completed, or already re-imported) */
+        const already = State.data.tasks.some(tk => tk.mashovId === mashovId);
         if (already) return;
+        /* Also skip if it was done — don't re-add a completed task */
+        if (doneMashovIds.has(mashovId)) return;
         State.data.tasks.push({
           id:          genId(),
           title:       `${item.subjectName || item.subject || '📚'}: ${text}`.slice(0, 80),
@@ -4245,6 +4389,21 @@ async function doMashovLogin(childId) {
       showToast('❌ ' + e.message);
     }
   }, 500);
+}
+
+async function doChildRefreshMashov(childId) {
+  const btn = document.getElementById('child-mashov-refresh-' + childId);
+  if (btn) { btn.textContent = '⏳'; btn.disabled = true; }
+  try {
+    const count = await MashovAPI.syncChild(childId);
+    showToast(count > 0
+      ? (_lang==='he' ? `📚 עודכנו ${count} שיעורי בית חדשים` : `📚 ${count} new homework tasks loaded`)
+      : (_lang==='he' ? '✅ שיעורי הבית מעודכנים' : '✅ Homework is up to date'));
+    Router.navigate('child-home', { childId }, false);
+  } catch(e) {
+    showToast(_lang==='he' ? '❌ שגיאה בסנכרון: ' + e.message : '❌ Sync error: ' + e.message);
+    if (btn) { btn.textContent = '🔄'; btn.disabled = false; }
+  }
 }
 
 async function doMashovSync(childId) {
