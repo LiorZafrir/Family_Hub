@@ -1401,6 +1401,7 @@ const State = {
     if (!this.data.rewards)               this.data.rewards = [];
     if (!this.data.redemptions)           this.data.redemptions = [];
     if (!this.data.approvalHistory)       this.data.approvalHistory = [];
+    if (!this.data.scheduleImages)        this.data.scheduleImages = {};
     if (!this.data.notificationSettings)  this.data.notificationSettings = { enabled: false, reminders: [] };
     if (!this.data.streakConfig)          this.data.streakConfig = { enabled: false, requiredDays: 7, bonusStars: 5 };
     this.data.children.forEach(c => {
@@ -3759,30 +3760,43 @@ const MashovCreds = {
 };
 
 /* =====================================================================
-   SCHEDULE IMAGES  (localStorage per child, base64 compressed)
+   SCHEDULE IMAGES  — stored in State.data (Firebase-synced, available on all devices)
 ===================================================================== */
 const ScheduleImages = {
-  key: id => 'family_sched_' + id,
-  get(childId)         { return localStorage.getItem(this.key(childId)); },
-  set(childId, dataUrl){ try { localStorage.setItem(this.key(childId), dataUrl); return true; } catch(e) { return false; } },
-  remove(childId)      { localStorage.removeItem(this.key(childId)); }
+  get(childId)          { return (State.data.scheduleImages || {})[childId] || null; },
+  set(childId, dataUrl) {
+    if (!State.data.scheduleImages) State.data.scheduleImages = {};
+    State.data.scheduleImages[childId] = dataUrl;
+    State.save();
+  },
+  remove(childId) {
+    if (!State.data.scheduleImages) return;
+    delete State.data.scheduleImages[childId];
+    State.save();
+  }
 };
 
 function compressAndStoreSchedule(childId, file) {
+  showToast(_lang==='he'?'⏳ מעבד תמונה...':'⏳ Processing image...');
   const reader = new FileReader();
   reader.onload = e => {
     const img = new Image();
     img.onload = () => {
-      const MAX = 1200;
+      /* Compress to max 900px — keeps Firebase payload under ~150 KB base64 */
+      const MAX = 900;
       const scale = Math.min(1, MAX / Math.max(img.width, img.height));
       const w = Math.round(img.width * scale), h = Math.round(img.height * scale);
       const canvas = document.createElement('canvas');
       canvas.width = w; canvas.height = h;
       canvas.getContext('2d').drawImage(img, 0, 0, w, h);
-      const dataUrl = canvas.toDataURL('image/jpeg', 0.82);
-      const ok = ScheduleImages.set(childId, dataUrl);
-      if (!ok) { showToast(_lang==='he'?'⚠️ התמונה גדולה מדי, נסה תמונה קטנה יותר':'⚠️ Image too large'); return; }
-      showToast(_lang==='he'?'📅 מערכת השעות נשמרה!':'📅 Schedule saved!');
+      const dataUrl = canvas.toDataURL('image/jpeg', 0.75);
+      /* Rough size check: base64 ≈ 4/3 × binary; warn if >400 KB */
+      if (dataUrl.length > 400 * 1024 * 4 / 3) {
+        showToast(_lang==='he'?'⚠️ התמונה עדיין גדולה מדי. נסה לצלם מחדש ברזולוציה נמוכה יותר':'⚠️ Image still too large. Try a lower-resolution photo.');
+        return;
+      }
+      ScheduleImages.set(childId, dataUrl);
+      showToast(_lang==='he'?'📅 מערכת השעות נשמרה ותסונכרן לכל המכשירים!':'📅 Schedule saved and synced to all devices!');
       switchTab('children');
     };
     img.src = e.target.result;
