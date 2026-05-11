@@ -1495,6 +1495,17 @@ const State = {
   ensureCompletion(taskId, childId) {
     const task = this.getTask(taskId);
     if (!task) return null;
+
+    /* Mashov one-time tasks: once a child completes or awaits approval,
+       that completion is permanent — don't reset to pending the next day. */
+    if (task.source === 'mashov' && task.recurrence === 'one-time') {
+      const existing = this.data.taskCompletions.find(
+        c => c.taskId === taskId && c.childId === childId &&
+             (c.status === 'done-awaiting' || c.status === 'verified')
+      );
+      if (existing) return existing;
+    }
+
     const periodKey = task.recurrence === 'weekly' ? getWeekStart() : today();
     let comp = this.data.taskCompletions.find(
       c => c.taskId === taskId && c.childId === childId && c.date === periodKey
@@ -3808,12 +3819,13 @@ function openScheduleViewer(childId) {
   const img = ScheduleImages.get(childId);
   const child = State.getChild(childId);
   if (!img) { showToast(_lang==='he'?'אין מערכת שעות שמורה':'No schedule saved'); return; }
+  const isParent = State.currentUser && State.currentUser.type === 'parent';
   openModal(
     `<img src="${img}" style="width:100%;border-radius:8px;display:block;">
-     <button class="btn btn-danger btn-full" style="margin-top:10px;"
+     ${isParent ? `<button class="btn btn-danger btn-full" style="margin-top:10px;"
        onclick="ScheduleImages.remove('${childId}');closeModal();showToast('🗑️ נמחק');switchTab('children');">
        🗑️ ${_lang==='he'?'מחק תמונה':'Delete image'}
-     </button>`,
+     </button>` : ''}`,
     `📅 ${child ? child.emoji+' '+esc(child.name) : ''}`
   );
 }
