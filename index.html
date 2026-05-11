@@ -1405,6 +1405,36 @@ const State = {
     if (!this.data.notificationSettings)  this.data.notificationSettings = { enabled: false, reminders: [] };
     if (!this.data.streakConfig)          this.data.streakConfig = { enabled: false, requiredDays: 7, bonusStars: 5 };
     if (!this.data.mashovSessions)        this.data.mashovSessions = {};
+
+    /* ── One-time bootstrap: push existing localStorage credentials into Firebase ──
+       This runs on the parent's device after update. Any local MashovCreds that are
+       missing from mashovSessions get written in, then saved to Firebase so every
+       other device (child's phone, second parent device) can see the connection. */
+    let _sessionDirty = false;
+    try {
+      const _lc = JSON.parse(localStorage.getItem('mashovCreds') || '{"accounts":[],"workerUrl":""}');
+      const _wUrl = (_lc.workerUrl || '').trim();
+      (_lc.accounts || []).forEach(acc => {
+        if (!acc.childId || !acc.mashovUserId || !acc.sessionCookie) return;
+        const existing = this.data.mashovSessions[acc.childId];
+        if (!existing || !existing.mashovUserId) {
+          this.data.mashovSessions[acc.childId] = {
+            mashovUserId:  acc.mashovUserId,
+            sessionCookie: acc.sessionCookie,
+            xsrfToken:     acc.xsrfToken  || '',
+            hwBonus:       acc.hwBonus    ?? 3,
+            lastSync:      acc.lastSync   || null,
+            workerUrl:     _wUrl
+          };
+          _sessionDirty = true;
+        } else if (_wUrl && !existing.workerUrl) {
+          existing.workerUrl = _wUrl;
+          _sessionDirty = true;
+        }
+      });
+    } catch(e) { /* no local creds — child/guest device, skip */ }
+    if (_sessionDirty) setTimeout(() => State.save(), 200);
+
     /* Migrate legacy scheduleImages → _scheduleRef (separate Firebase node) */
     if (this.data.scheduleImages && Object.keys(this.data.scheduleImages).length > 0) {
       Object.entries(this.data.scheduleImages).forEach(([cid, url]) => {
