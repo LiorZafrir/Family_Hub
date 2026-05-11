@@ -967,7 +967,8 @@ firebase.initializeApp({
   messagingSenderId: "656813285720",
   appId:             "1:656813285720:web:c90facfbcb24681b13052d"
 });
-const _dbRef = firebase.database().ref('familyApp');
+const _dbRef       = firebase.database().ref('familyApp');
+const _scheduleRef = firebase.database().ref('familySchedules'); /* separate node — keeps large images out of main data */
 
 /* =====================================================================
    UTILITIES
@@ -1401,9 +1402,19 @@ const State = {
     if (!this.data.rewards)               this.data.rewards = [];
     if (!this.data.redemptions)           this.data.redemptions = [];
     if (!this.data.approvalHistory)       this.data.approvalHistory = [];
-    if (!this.data.scheduleImages)        this.data.scheduleImages = {};
     if (!this.data.notificationSettings)  this.data.notificationSettings = { enabled: false, reminders: [] };
     if (!this.data.streakConfig)          this.data.streakConfig = { enabled: false, requiredDays: 7, bonusStars: 5 };
+    if (!this.data.mashovSessions)        this.data.mashovSessions = {};
+    /* Migrate legacy scheduleImages → _scheduleRef (separate Firebase node) */
+    if (this.data.scheduleImages && Object.keys(this.data.scheduleImages).length > 0) {
+      Object.entries(this.data.scheduleImages).forEach(([cid, url]) => {
+        if (url && !_schedCache[cid]) {
+          _schedCache[cid] = url;
+          _scheduleRef.child(cid).set(url).catch(() => {});
+        }
+      });
+      delete this.data.scheduleImages;
+    }
     this.data.children.forEach(c => {
       if (c.currentStreak === undefined) c.currentStreak = 0;
       if (!c.lastFullDay) c.lastFullDay = '';
@@ -1422,6 +1433,16 @@ const State = {
       const view = Router.currentView;
       if (!modalOpen && view && view !== 'pin' && view !== 'home') {
         Views[view].render(Router.params || {});
+      }
+    });
+    /* Listen for schedule images on the separate node */
+    _scheduleRef.on('value', snapshot => {
+      _schedCache = snapshot.val() || {};
+      /* Re-render views that show the 📅 button */
+      const modalOpen = document.getElementById('modal').classList.contains('show');
+      const view = Router.currentView;
+      if (!modalOpen && (view === 'child-home' || view === 'parent-dashboard')) {
+        Views[view] && Views[view].render(Router.params || {});
       }
     });
   },
@@ -1944,8 +1965,9 @@ const Views = {
 
         const childBlocks = Object.entries(byChild).map(([cid, subjMap]) => {
           const child = State.getChild(cid);
-          const acc   = MashovCreds.get(cid);
-          const bonus = acc?.hwBonus ?? 3;
+          const acc   = MashovCreds.get(cid) || {};
+          const sess  = (State.data.mashovSessions || {})[cid] || {};
+          const bonus = acc?.hwBonus ?? sess?.hwBonus ?? 3;
           const childTaskCount = Object.values(subjMap).reduce((s,a) => s + a.length, 0);
           const blockId = gid();
 
@@ -2333,10 +2355,11 @@ const Views = {
             <button class="btn btn-ghost btn-sm" onclick="openMashovWorkerModal()" style="font-size:0.72rem;">⚙️ Worker</button>
           </div>
           ${State.data.children.map(child => {
-            const acc = MashovCreds.get(child.id);
-            const connected = !!(acc && acc.mashovUserId);
-            const lastSync = acc && acc.lastSync
-              ? formatDate(acc.lastSync)
+            const acc  = MashovCreds.get(child.id) || {};
+            const sess = (State.data.mashovSessions || {})[child.id] || {};
+            const connected = !!(acc.mashovUserId || sess.mashovUserId);
+            const lastSync = (acc.lastSync || sess.lastSync)
+              ? formatDate(acc.lastSync || sess.lastSync)
               : '';
             return `<div class="mashov-child-row">
               <span style="font-size:1.3rem;">${child.emoji}</span>
@@ -2494,8 +2517,9 @@ const Views = {
         const gid = () => 'ch' + Math.random().toString(36).slice(2,7);
         const catId = gid();
         const doneCount  = mashovEntries.filter(e => e.comp.status === 'verified' || e.comp.status === 'done-awaiting').length;
-        const mashovAcc  = MashovCreds.get(child.id);
-        const totalBonus = mashovAcc?.hwBonus ?? 10;
+        const mashovAcc  = MashovCreds.get(child.id) || {};
+        const mashovSess = (State.data.mashovSessions || {})[child.id] || {};
+        const totalBonus = mashovAcc?.hwBonus ?? mashovSess?.hwBonus ?? 3;
         const allHwDone  = doneCount === mashovEntries.length;
 
         const subjHtml = Object.entries(bySubj)
@@ -2562,7 +2586,7 @@ const Views = {
                 class="logout-btn" style="background:rgba(255,255,255,0.2);border:none;color:white;">
                 📅
               </button>` : ''}
-              ${MashovCreds.get(child.id) ? `
+              ${(MashovCreds.get(child.id) || (State.data.mashovSessions || {})[child.id]?.mashovUserId) ? `
               <button onclick="doChildRefreshMashov('${child.id}')" id="child-mashov-refresh-${child.id}"
                 class="logout-btn" style="background:rgba(255,255,255,0.2);border:none;color:white;" title="${_lang==='he'?'רענן שיעורי בית':'Refresh homework'}">
                 🔄
@@ -2876,8 +2900,9 @@ function doVerifyTask(compId) {
       return c && c.status === 'verified';
     });
     if (allDone && mashovTasks.length > 0) {
-      const acc   = MashovCreds.get(comp.childId);
-      const bonus = acc?.hwBonus ?? 3;
+      const acc   = MashovCreds.get(comp.childId) || {};
+      const sess  = (State.data.mashovSessions || {})[comp.childId] || {};
+      const bonus = acc?.hwBonus ?? sess?.hwBonus ?? 3;
       child.totalPoints += bonus;
       logHistory('task', '🏫', `${child.name} השלים את כל שיעורי הבית! (+${bonus} ⭐)`, child.id);
       State.save();
@@ -3127,9 +3152,16 @@ function selectMashovHwBonus(n) {
 /* Save hwBonus directly from the tasks tab star picker */
 function setChildHwBonus(childId, n) {
   const acc = MashovCreds.get(childId);
-  if (!acc) return;
-  acc.hwBonus = n;
-  MashovCreds.set(acc);
+  if (acc) {
+    acc.hwBonus = n;
+    MashovCreds.set(acc);   /* also updates mashovSessions via MashovCreds.set */
+  } else {
+    /* No local creds — update only the Firebase-synced session */
+    if (!State.data.mashovSessions) State.data.mashovSessions = {};
+    if (!State.data.mashovSessions[childId]) State.data.mashovSessions[childId] = {};
+    State.data.mashovSessions[childId].hwBonus = n;
+    State.save();
+  }
   const picker = document.getElementById('hw-stars-' + childId);
   if (picker) picker.querySelectorAll('.star-pick-btn').forEach((b, i) => b.classList.toggle('filled', i < n));
 }
@@ -3746,7 +3778,7 @@ function doRejectRedemption(rdId) {
    MASHOV INTEGRATION
 ===================================================================== */
 
-/* --- Credentials (localStorage only, never Firebase) --- */
+/* --- Credentials (passwords stay localStorage-only; non-sensitive session data synced to Firebase) --- */
 const MashovCreds = {
   _key: 'mashovCreds',
   load() {
@@ -3760,30 +3792,63 @@ const MashovCreds = {
     const i = d.accounts.findIndex(a => a.childId === acc.childId);
     i >= 0 ? d.accounts[i] = acc : d.accounts.push(acc);
     this.save(d);
+    /* Sync non-sensitive fields to Firebase so all devices can use them */
+    if (!State.data.mashovSessions) State.data.mashovSessions = {};
+    State.data.mashovSessions[acc.childId] = {
+      mashovUserId:  acc.mashovUserId  || null,
+      sessionCookie: acc.sessionCookie || '',
+      xsrfToken:     acc.xsrfToken     || '',
+      hwBonus:       acc.hwBonus       ?? 3,
+      lastSync:      acc.lastSync      || null,
+      workerUrl:     this.getWorkerUrl()
+    };
+    State.save();
   },
   remove(childId) {
     const d = this.load();
     d.accounts = d.accounts.filter(a => a.childId !== childId);
     this.save(d);
+    /* Clean Firebase session too */
+    if (State.data.mashovSessions && State.data.mashovSessions[childId]) {
+      delete State.data.mashovSessions[childId];
+      State.save();
+    }
   },
   getWorkerUrl() { return (this.load().workerUrl || '').trim(); },
-  setWorkerUrl(url) { const d = this.load(); d.workerUrl = url; this.save(d); }
+  setWorkerUrl(url) {
+    const d = this.load(); d.workerUrl = url; this.save(d);
+    /* Propagate to all mashovSessions entries so other devices pick it up */
+    if (State.data.mashovSessions) {
+      Object.values(State.data.mashovSessions).forEach(s => { s.workerUrl = url; });
+      State.save();
+    }
+  }
 };
 
 /* =====================================================================
-   SCHEDULE IMAGES  — stored in State.data (Firebase-synced, available on all devices)
+   SCHEDULE IMAGES  — stored in _scheduleRef (separate Firebase node, synced to all devices)
+   _schedCache is populated by the _scheduleRef.on('value') listener in State._startListening()
 ===================================================================== */
+let _schedCache = {};   /* in-memory mirror of familySchedules Firebase node */
 const ScheduleImages = {
-  get(childId)          { return (State.data.scheduleImages || {})[childId] || null; },
+  get(childId) {
+    /* Check live cache first; fall back to any legacy State.data entry (during migration) */
+    return _schedCache[childId] || (State.data.scheduleImages || {})[childId] || null;
+  },
   set(childId, dataUrl) {
-    if (!State.data.scheduleImages) State.data.scheduleImages = {};
-    State.data.scheduleImages[childId] = dataUrl;
-    State.save();
+    _schedCache[childId] = dataUrl;   /* optimistic local update */
+    _scheduleRef.child(childId).set(dataUrl)
+      .catch(e => console.warn('Schedule image save failed:', e));
   },
   remove(childId) {
-    if (!State.data.scheduleImages) return;
-    delete State.data.scheduleImages[childId];
-    State.save();
+    delete _schedCache[childId];
+    _scheduleRef.child(childId).remove()
+      .catch(e => console.warn('Schedule image remove failed:', e));
+    /* Also clean up any leftover legacy entry */
+    if (State.data.scheduleImages && State.data.scheduleImages[childId]) {
+      delete State.data.scheduleImages[childId];
+      State.save();
+    }
   }
 };
 
@@ -3836,7 +3901,14 @@ const MashovAPI = {
   PROXY_PUBLIC: 'https://corsproxy.io/?url=',   // for unauthenticated calls only
   _schools: null,
 
-  _workerUrl() { return MashovCreds.getWorkerUrl(); },
+  _workerUrl() {
+    /* Local localStorage first; fall back to any session's workerUrl (cross-device) */
+    const local = MashovCreds.getWorkerUrl();
+    if (local) return local;
+    const sessions = State.data.mashovSessions || {};
+    for (const s of Object.values(sessions)) { if (s.workerUrl) return s.workerUrl; }
+    return '';
+  },
 
   /* Fetch through Cloudflare Worker (supports cookie forwarding via x-mashov-cookie) */
   async _fetch(url, opts = {}, cookie = '') {
@@ -3972,18 +4044,25 @@ const MashovAPI = {
     console.log('[Mashov] GET', path, '→', res.status);
 
     /* Auto-relogin on 401 (expired session) */
-    if (res.status === 401 && !_retried && acc.password) {
-      console.log('[Mashov] 401 detected — attempting auto-relogin for child', acc.childId);
-      const loginRes = await this.login(acc.schoolSemel, acc.year, acc.userId, acc.password);
-      if (loginRes.ok && loginRes.cookie) {
-        acc.sessionCookie = loginRes.cookie;
-        acc.xsrfToken     = this._csrfToken(loginRes.cookie);
-        MashovCreds.set(acc);
-        console.log('[Mashov] re-login OK — retrying request');
-        return this._authGet(path, acc, true);   /* retry once */
+    if (res.status === 401 && !_retried) {
+      if (acc.password) {
+        console.log('[Mashov] 401 detected — attempting auto-relogin for child', acc.childId);
+        const loginRes = await this.login(acc.schoolSemel, acc.year, acc.userId, acc.password);
+        if (loginRes.ok && loginRes.cookie) {
+          acc.sessionCookie = loginRes.cookie;
+          acc.xsrfToken     = this._csrfToken(loginRes.cookie);
+          MashovCreds.set(acc);
+          console.log('[Mashov] re-login OK — retrying request');
+          return this._authGet(path, acc, true);   /* retry once */
+        } else {
+          console.warn('[Mashov] re-login failed:', loginRes.error);
+          throw new Error('SESSION_EXPIRED');
+        }
       } else {
-        console.warn('[Mashov] re-login failed:', loginRes.error);
-        throw new Error('SESSION_EXPIRED');
+        /* No password on this device — session expired, parent needs to re-sync from their phone */
+        throw new Error(_lang === 'he'
+          ? 'הסשן פג תוקף — בקש מהורה לסנכרן שוב מהטלפון שלהם'
+          : 'Session expired — ask a parent to sync again from their phone');
       }
     }
 
@@ -4012,7 +4091,14 @@ const MashovAPI = {
 
   /* Sync one child: imports homework, saves grades+attendance to Firebase */
   async syncChild(childId) {
-    const acc = MashovCreds.get(childId);
+    let acc = MashovCreds.get(childId);
+    if (!acc) {
+      /* Fall back to Firebase-synced session (child's device has no localStorage creds) */
+      const sess = (State.data.mashovSessions || {})[childId];
+      if (sess && sess.mashovUserId && sess.sessionCookie) {
+        acc = { ...sess, childId, password: null }; /* no password — can't auto-relogin */
+      }
+    }
     if (!acc || !acc.mashovUserId || !acc.sessionCookie) throw new Error('NOT_CONNECTED');
     console.log('[Mashov] syncChild:', childId, '| mashovUserId:', acc.mashovUserId, '| cookieLen:', (acc.sessionCookie||'').length, '| semel:', acc.schoolSemel, '| year:', acc.year);
 
@@ -4145,7 +4231,18 @@ const MashovAPI = {
 
     /* Update creds lastSync */
     acc.lastSync = Date.now();
-    MashovCreds.set(acc);
+    if (MashovCreds.get(childId)) {
+      MashovCreds.set(acc);   /* also updates mashovSessions via MashovCreds.set */
+    } else {
+      /* Device has no local password — update only the Firebase session */
+      if (!State.data.mashovSessions) State.data.mashovSessions = {};
+      if (!State.data.mashovSessions[childId]) State.data.mashovSessions[childId] = {};
+      Object.assign(State.data.mashovSessions[childId], {
+        sessionCookie: acc.sessionCookie,
+        xsrfToken:     acc.xsrfToken || '',
+        lastSync:      acc.lastSync
+      });
+    }
 
     State.save();
     return importedCount;
