@@ -1590,7 +1590,13 @@ const State = {
         if (!comp || comp.status === 'pending') pendingCount++;
       });
     });
-    const awaitingVerification = this.data.taskCompletions.filter(c => c.status === 'done-awaiting' && c.date === todayStr).length;
+    const awaitingVerification = this.data.taskCompletions.filter(c => {
+      if (c.status !== 'done-awaiting') return false;
+      /* Mashov one-time tasks can be marked done on any day — always count them */
+      const task = this.data.tasks.find(t => t.id === c.taskId);
+      if (task && task.source === 'mashov' && task.recurrence === 'one-time') return true;
+      return c.date === todayStr;
+    }).length;
     const pendingRequests    = this.data.requests.filter(r => r.status === 'pending').length;
     const individualPending  = (this.data.redemptions||[]).filter(r => !r.isGroup && r.status === 'pending').length;
     const groupAtGoal        = (this.data.redemptions||[]).filter(r => {
@@ -1932,11 +1938,15 @@ const Views = {
           ? t('everyone')
           : esc((State.getChild(task.assignedTo) || {}).name || '?');
         const periodKey = task.recurrence === 'weekly' ? weekStr : todayStr;
+        /* Mashov one-time tasks may be marked done on any day (not just today) — never filter by date */
+        const isMashovOneTime = task.source === 'mashov' && task.recurrence === 'one-time';
         const awaitingComps = State.data.taskCompletions.filter(
-          c => c.taskId === task.id && c.date === periodKey && c.status === 'done-awaiting'
+          c => c.taskId === task.id && c.status === 'done-awaiting' &&
+               (isMashovOneTime || c.date === periodKey)
         );
         const verifiedComps = State.data.taskCompletions.filter(
-          c => c.taskId === task.id && c.date === periodKey && c.status === 'verified'
+          c => c.taskId === task.id && c.status === 'verified' &&
+               (isMashovOneTime || c.date === periodKey)
         );
         return `<div class="task-card">
           <div class="task-card-header">
@@ -2922,12 +2932,14 @@ function doVerifyTask(compId) {
   comp.status = 'verified';
 
   if (task.source === 'mashov') {
-    /* Mashov: stars only when ALL homework is done */
+    /* Mashov: stars only when ALL homework is done.
+       No date filter — Mashov completions may have been marked on different days. */
     const mashovTasks = State.data.tasks.filter(t => t.source === 'mashov' && t.assignedTo === comp.childId);
-    const todayKey = today();
     const allDone = mashovTasks.every(t => {
-      const c = State.data.taskCompletions.find(cc => cc.taskId === t.id && cc.childId === comp.childId && cc.date === todayKey);
-      return c && c.status === 'verified';
+      const c = State.data.taskCompletions.find(cc =>
+        cc.taskId === t.id && cc.childId === comp.childId && cc.status === 'verified'
+      );
+      return !!c;
     });
     if (allDone && mashovTasks.length > 0) {
       const acc   = MashovCreds.get(comp.childId) || {};
