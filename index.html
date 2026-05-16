@@ -1406,6 +1406,41 @@ const State = {
     if (!this.data.streakConfig)          this.data.streakConfig = { enabled: false, requiredDays: 7, bonusStars: 5 };
     if (!this.data.mashovSessions)        this.data.mashovSessions = {};
 
+    /* ── Upgrade old English demo rewards → new Hebrew reward list ──
+       Detect by checking if the first reward has no Hebrew characters (= old demo).
+       If user already has Hebrew rewards, leave them untouched. */
+    const _hasHebrew = s => /[֐-׿]/.test(s || '');
+    if (this.data.rewards && this.data.rewards.length > 0 && !_hasHebrew(this.data.rewards[0].title)) {
+      this.data.rewards = [
+        { id: genId(), icon: '📺', title: 'פרק נוסף לפני שינה',            description: 'עוד פרק אחד לפני כיבוי האור',                   cost: 40,  isActive: true, isGroup: false },
+        { id: genId(), icon: '🍦', title: 'גלידה בחירה חופשית',             description: 'תבחר/י את הגלידה שאתה/את רוצה',                  cost: 60,  isActive: true, isGroup: false },
+        { id: genId(), icon: '🍰', title: 'קינוח מיוחד לבחירה',             description: 'קינוח מיוחד לפי בחירתך',                          cost: 70,  isActive: true, isGroup: false },
+        { id: genId(), icon: '📱', title: '30 דקות נוספות מסך',             description: 'טלוויזיה, טאבלט או מחשב — 30 דק׳ נוספות',        cost: 50,  isActive: true, isGroup: false },
+        { id: genId(), icon: '🎬', title: 'בחירת סרט לערב',                 description: 'אתה/את בוחר/ת את הסרט של הערב',                  cost: 80,  isActive: true, isGroup: false },
+        { id: genId(), icon: '🛋️', title: 'יום ספה בבית',                  description: 'יום כיף בבית — פיג׳מה, ספה וחופשי!',             cost: 80,  isActive: true, isGroup: false },
+        { id: genId(), icon: '🥐', title: 'אפייה ביחד עם הורה',             description: 'בוחרים מה לאפות ביחד — מגדנייה מהבית',           cost: 90,  isActive: true, isGroup: false },
+        { id: genId(), icon: '🃏', title: 'חפיסת קלפים / סטיקרים',         description: 'חפיסה אחת לפי בחירתך מהחנות',                    cost: 90,  isActive: true, isGroup: false },
+        { id: genId(), icon: '🎮', title: 'שעת משחק וידאו',                 description: 'שעה שלמה של משחק ללא הפרעה',                     cost: 100, isActive: true, isGroup: false },
+        { id: genId(), icon: '🌙', title: 'שעת שינה מאוחרת ב-30 דקות',     description: 'לישון חצי שעה יותר מאוחר מהרגיל',                cost: 100, isActive: true, isGroup: false },
+        { id: genId(), icon: '🍕', title: 'ארוחה מועדפת ביום שישי',         description: 'אתה/את בוחר/ת מה אוכלים ביום שישי',             cost: 120, isActive: true, isGroup: false },
+        { id: genId(), icon: '📚', title: 'ספר חדש לבחירה',                 description: 'ספר אחד חדש לפי בחירתך',                         cost: 130, isActive: true, isGroup: false },
+        { id: genId(), icon: '📸', title: 'שיגרת צילום ביחד עם הורה',       description: 'יוצאים לצלם ביחד — זכרונות לתמיד',               cost: 150, isActive: true, isGroup: false },
+        { id: genId(), icon: '🚫', title: 'פטור ממטלה אחת',                 description: 'דלג/י על מטלה אחת ללא עונש',                     cost: 150, isActive: true, isGroup: false },
+        { id: genId(), icon: '🎨', title: 'ערכת אמנות / יצירה',             description: 'ערכת יצירה לפי בחירתך',                          cost: 160, isActive: true, isGroup: false },
+        { id: genId(), icon: '🗺️', title: 'בחירת פעילות סוף שבוע',         description: 'אתה/את קובע/ת מה עושים בסוף השבוע',             cost: 200, isActive: true, isGroup: false },
+        { id: genId(), icon: '💰', title: 'כסף כיס קטן (5–10 ₪)',           description: 'כסף מזומן שיינתן על ידי ההורה',                  cost: 200, isActive: true, isGroup: false },
+        { id: genId(), icon: '👫', title: 'הזמנת חבר לישון',                description: 'חבר אחד מגיע ללינת חברים',                       cost: 250, isActive: true, isGroup: false },
+        { id: genId(), icon: '🎳', title: 'בולינג / פעילות חד-פעמית',       description: 'פעילות כיף בחוץ לפי בחירתך',                     cost: 300, isActive: true, isGroup: false },
+        { id: genId(), icon: '👑', title: 'יום מלך / מלכה',                 description: 'יום שלם כשאתה/את הבוס — מה שתגיד/י הולך!',       cost: 400, isActive: true, isGroup: false },
+        { id: genId(), icon: '🎲', title: 'ערב משחקי קופסה משפחתי',         description: 'כולם משחקים ביחד — נשנושים כלולים!',             cost: 200, isActive: true, isGroup: true  },
+        { id: genId(), icon: '🎥', title: 'ערב סרט משפחתי מפנק',            description: 'סרט, פופקורן ומשקאות — מסיבת קולנוע בית',        cost: 300, isActive: true, isGroup: true  },
+        { id: genId(), icon: '⛺', title: 'קמפינג בחצר / לינת גינה',        description: 'שינה בחוץ עם אוהל ומדורה קטנה',                  cost: 350, isActive: true, isGroup: true  },
+        { id: genId(), icon: '🍽️', title: 'ארוחה במסעדה לבחירת הילדים',    description: 'כולם יוצאים לאכול במסעדה שהילדים בוחרים',        cost: 400, isActive: true, isGroup: true  },
+        { id: genId(), icon: '🎡', title: 'טיול משפחתי לאטרקציה',           description: 'יום כיף משפחתי באטרקציה — פארק, גן חיות ועוד',  cost: 600, isActive: true, isGroup: true  }
+      ];
+      setTimeout(() => State.save(), 300);
+    }
+
     /* ── One-time bootstrap: push existing localStorage credentials into Firebase ──
        This runs on the parent's device after update. Any local MashovCreds that are
        missing from mashovSessions get written in, then saved to Firebase so every
@@ -1488,7 +1523,9 @@ const State = {
     const yoavId = genId(), noaId = genId();
     const t1 = genId(), t2 = genId(), t3 = genId(), t4 = genId(), t5 = genId();
     const r1 = genId(), r2 = genId();
-    const rw1=genId(),rw2=genId(),rw3=genId(),rw4=genId(),rw5=genId(),rw6=genId(),rw7=genId(),rw8=genId(),rw9=genId(),rw10=genId();
+    const rw1=genId(),rw2=genId(),rw3=genId(),rw4=genId(),rw5=genId(),rw6=genId(),rw7=genId(),rw8=genId(),rw9=genId(),rw10=genId(),
+          rw11=genId(),rw12=genId(),rw13=genId(),rw14=genId(),rw15=genId(),rw16=genId(),rw17=genId(),rw18=genId(),rw19=genId(),rw20=genId(),
+          rw21=genId(),rw22=genId(),rw23=genId(),rw24=genId(),rw25=genId();
     this.data = {
       parentPin: '1234',
       familyMotto: 'Together we can do anything! 💪',
@@ -1509,17 +1546,33 @@ const State = {
         { id: r2, childId: noaId,  title: 'Buy new markers',        category: 'purchase',  description: 'I need them for art class.',              urgency: 'medium', status: 'pending', reply: '', createdAt: Date.now() - 172800000 }
       ],
       rewards: [
-        { id: rw1,  icon: '📱', title: '30 min extra screen time',        description: 'Extra TV, tablet or computer time',       cost: 5,  isActive: true, isGroup: false },
-        { id: rw2,  icon: '💰', title: 'Pocket money bonus (10₪)',        description: 'Cash reward paid out by parent',           cost: 10, isActive: true, isGroup: false },
-        { id: rw3,  icon: '🎬', title: 'Movie night pick',                description: 'You choose the movie for family night',   cost: 8,  isActive: true, isGroup: false },
-        { id: rw4,  icon: '🍕', title: 'Choose dinner tonight',           description: 'Pick what the whole family eats',         cost: 6,  isActive: true, isGroup: false },
-        { id: rw5,  icon: '🌙', title: 'Stay up 30 min late',             description: 'One special late night, your choice',     cost: 7,  isActive: true, isGroup: false },
-        { id: rw6,  icon: '👫', title: 'Friend sleepover',                description: 'Invite a friend to stay overnight',       cost: 15, isActive: true, isGroup: false },
-        { id: rw7,  icon: '🍦', title: 'Special dessert treat',           description: 'Your favourite sweet treat',              cost: 4,  isActive: true, isGroup: false },
-        { id: rw8,  icon: '🛍️', title: 'Small toy or book (up to 25₪)', description: 'One item of your choice',                 cost: 20, isActive: true, isGroup: false },
-        { id: rw9,  icon: '🎮', title: '1-hour gaming session',           description: 'Uninterrupted gaming time',               cost: 8,  isActive: true, isGroup: false },
-        { id: rw10, icon: '🚗', title: 'Family outing choice',            description: 'Pick the next family day out',            cost: 25, isActive: true, isGroup: false },
-        { id: genId(), icon: '🎡', title: 'Day trip to the amusement park', description: 'Work together as a family to earn this!', cost: 30, isActive: true, isGroup: true }
+        /* ── אישי ── */
+        { id: rw1,  icon: '📺', title: 'פרק נוסף לפני שינה',            description: 'עוד פרק אחד לפני כיבוי האור',           cost: 40,  isActive: true, isGroup: false },
+        { id: rw2,  icon: '🍦', title: 'גלידה בחירה חופשית',             description: 'תבחר/י את הגלידה שאתה/את רוצה',         cost: 60,  isActive: true, isGroup: false },
+        { id: rw3,  icon: '🍰', title: 'קינוח מיוחד לבחירה',             description: 'קינוח מיוחד לפי בחירתך',                cost: 70,  isActive: true, isGroup: false },
+        { id: rw4,  icon: '📱', title: '30 דקות נוספות מסך',             description: 'טלוויזיה, טאבלט או מחשב — 30 דק׳ נוספות', cost: 50,  isActive: true, isGroup: false },
+        { id: rw5,  icon: '🎬', title: 'בחירת סרט לערב',                 description: 'אתה/את בוחר/ת את הסרט של הערב',         cost: 80,  isActive: true, isGroup: false },
+        { id: rw6,  icon: '🛋️', title: 'יום ספה בבית',                  description: 'יום כיף בבית — פיג׳מה, ספה וחופשי!',    cost: 80,  isActive: true, isGroup: false },
+        { id: rw7,  icon: '🥐', title: 'אפייה ביחד עם הורה',             description: 'בוחרים מה לאפות ביחד — מגדנייה מהבית',  cost: 90,  isActive: true, isGroup: false },
+        { id: rw8,  icon: '🃏', title: 'חפיסת קלפים / סטיקרים',         description: 'חפיסה אחת לפי בחירתך מהחנות',           cost: 90,  isActive: true, isGroup: false },
+        { id: rw9,  icon: '🎮', title: 'שעת משחק וידאו',                 description: 'שעה שלמה של משחק ללא הפרעה',            cost: 100, isActive: true, isGroup: false },
+        { id: rw10, icon: '🌙', title: 'שעת שינה מאוחרת ב-30 דקות',     description: 'לישון חצי שעה יותר מאוחר מהרגיל',       cost: 100, isActive: true, isGroup: false },
+        { id: rw11, icon: '🍕', title: 'ארוחה מועדפת ביום שישי',         description: 'אתה/את בוחר/ת מה אוכלים ביום שישי',    cost: 120, isActive: true, isGroup: false },
+        { id: rw12, icon: '📚', title: 'ספר חדש לבחירה',                 description: 'ספר אחד חדש לפי בחירתך',                cost: 130, isActive: true, isGroup: false },
+        { id: rw13, icon: '📸', title: 'שיגרת צילום ביחד עם הורה',       description: 'יוצאים לצלם ביחד — זכרונות לתמיד',      cost: 150, isActive: true, isGroup: false },
+        { id: rw14, icon: '🚫', title: 'פטור ממטלה אחת',                 description: 'דלג/י על מטלה אחת ללא עונש',            cost: 150, isActive: true, isGroup: false },
+        { id: rw15, icon: '🎨', title: 'ערכת אמנות / יצירה',             description: 'ערכת יצירה לפי בחירתך',                 cost: 160, isActive: true, isGroup: false },
+        { id: rw16, icon: '🗺️', title: 'בחירת פעילות סוף שבוע',         description: 'אתה/את קובע/ת מה עושים בסוף השבוע',     cost: 200, isActive: true, isGroup: false },
+        { id: rw17, icon: '💰', title: 'כסף כיס קטן (5–10 ₪)',           description: 'כסף מזומן שיינתן על ידי ההורה',         cost: 200, isActive: true, isGroup: false },
+        { id: rw18, icon: '👫', title: 'הזמנת חבר לישון',                description: 'חבר אחד מגיע ללינת חברים',              cost: 250, isActive: true, isGroup: false },
+        { id: rw19, icon: '🎳', title: 'בולינג / פעילות חד-פעמית',       description: 'פעילות כיף בחוץ לפי בחירתך',            cost: 300, isActive: true, isGroup: false },
+        { id: rw20, icon: '👑', title: 'יום מלך / מלכה',                 description: 'יום שלם כשאתה/את הבוס — מה שתגיד/י הולך!', cost: 400, isActive: true, isGroup: false },
+        /* ── משפחתי ── */
+        { id: rw21, icon: '🎲', title: 'ערב משחקי קופסה משפחתי',         description: 'כולם משחקים ביחד — נשנושים כלולים!',    cost: 200, isActive: true, isGroup: true },
+        { id: rw22, icon: '🎥', title: 'ערב סרט משפחתי מפנק',            description: 'סרט, פופקורן ומשקאות — מסיבת קולנוע בית', cost: 300, isActive: true, isGroup: true },
+        { id: rw23, icon: '⛺', title: 'קמפינג בחצר / לינת גינה',        description: 'שינה בחוץ עם אוהל ומדורה קטנה',         cost: 350, isActive: true, isGroup: true },
+        { id: rw24, icon: '🍽️', title: 'ארוחה במסעדה לבחירת הילדים',    description: 'כולם יוצאים לאכול במסעדה שהילדים בוחרים', cost: 400, isActive: true, isGroup: true },
+        { id: rw25, icon: '🎡', title: 'טיול משפחתי לאטרקציה',           description: 'יום כיף משפחתי באטרקציה — פארק, גן חיות ועוד', cost: 600, isActive: true, isGroup: true }
       ],
       redemptions: [],
       approvalHistory: [],
@@ -2490,9 +2543,17 @@ const Views = {
 
       const allTasks = State.getChildTasks(child.id);
       const motivational = getMotivational(child.name);
-      const MILESTONE = 50;
-      const progress = Math.min(((child.totalPoints % MILESTONE) / MILESTONE) * 100, 100);
-      const nextMilestone = (Math.floor(child.totalPoints / MILESTONE) + 1) * MILESTONE;
+      /* Milestone = next reward the child is saving toward (cheapest unaffordable reward) */
+      const _rewardCosts = (State.data.rewards || [])
+        .filter(r => r.isActive && !r.isGroup)
+        .map(r => r.cost)
+        .sort((a, b) => a - b);
+      const nextMilestone = _rewardCosts.find(c => c > child.totalPoints)
+        || (_rewardCosts.length ? _rewardCosts[_rewardCosts.length - 1] + 50 : 50);
+      const _prevMilestone = [..._rewardCosts].reverse().find(c => c <= child.totalPoints) || 0;
+      const progress = nextMilestone > _prevMilestone
+        ? Math.min(((child.totalPoints - _prevMilestone) / (nextMilestone - _prevMilestone)) * 100, 100)
+        : 100;
       const pendingReqCount = State.data.requests.filter(r => r.childId === child.id && r.status === 'pending').length;
       const allVerified = allTasks.length > 0 && allTasks.every(({ comp }) => comp.status === 'verified');
       /* Hide verified tasks from the list — they appear in history; show 🎉 when all done */
